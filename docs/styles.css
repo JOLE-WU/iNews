@@ -374,6 +374,11 @@ body[data-theme="dark"] .mi-toggle::after { transform: translateX(18px); }
 .detail-actions button { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: var(--text-2); }
 .detail-actions svg { width: 23px; height: 23px; }
 .detail-actions .liked { color: var(--red) !important; }
+.detail-actions .d-read { color: var(--accent, #ff5a3c) !important; }
+.detail-actions .d-read svg { transform: rotate(-90deg); }
+.live-badge { color: var(--red, #ff5a3c); font-weight: 600; }
+/* 真实正文较长时的首行缩进优化 & 链接可点击提示 */
+.detail-body { word-break: break-word; }
 
 /* ============ Toast ============ */
 .toast { position: absolute; left: 50%; bottom: 96px; transform: translate(-50%, 16px); z-index: 80; background: rgba(22,22,26,.9); color: #fff; padding: 10px 18px; border-radius: 22px; display: flex; align-items: center; gap: 8px; font-size: 13px; opacity: 0; pointer-events: none; transition: 0.3s; backdrop-filter: blur(10px); white-space: nowrap; }
