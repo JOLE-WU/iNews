@@ -7,8 +7,5 @@
     "contentInset": "always",
     "scheme": "iNews"
   },
-  "server": {
-    "url": "https://cdn.jsdelivr.net/gh/JOLE-WU/iNews@master/docs/"
-  },
   "plugins": {}
 }

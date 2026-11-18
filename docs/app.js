@@ -268,10 +268,22 @@ const CHANNELS = [
    运营层改动只改服务器上的 config.json 即可生效，无需重新出 IPA。
    任何失败都静默回退到内置默认值，不影响 App 启动。 */
 async function applyRemoteConfig() {
+  let cfg = null;
+  // 优先拉远程配置（改仓库 docs/config.json 即生效，无需重新出 IPA）；
+  // 离线或失败时回退到打包进 App 的本地 config.json。
+  const REMOTE = 'https://cdn.jsdelivr.net/gh/JOLE-WU/iNews@master/docs/config.json';
   try {
-    const res = await fetch('config.json', { cache: 'no-cache' });
-    if (!res.ok) return;
-    const cfg = await res.json();
+    const res = await fetch(REMOTE, { cache: 'no-store' });
+    if (res.ok) cfg = await res.json();
+  } catch (e) { /* 离线：用本地 */ }
+  try {
+    if (!cfg) {
+      const res = await fetch('config.json', { cache: 'no-cache' });
+      if (res.ok) cfg = await res.json();
+    }
+  } catch (e) { /* 无本地配置：用内置默认值 */ }
+  if (!cfg) return;
+  try {
     if (cfg.brand && typeof cfg.brand === 'string') {
       const el = document.querySelector('.brand-text');
       if (el) el.innerHTML = `${cfg.brand}<span class="brand-dot">.</span>`;
