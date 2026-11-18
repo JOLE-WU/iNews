@@ -1,0 +1,14 @@
+{
+  "appId": "com.jolewinews.app",
+  "appName": "iNews",
+  "webDir": "docs",
+  "bundledWebRuntime": false,
+  "ios": {
+    "contentInset": "always",
+    "scheme": "iNews"
+  },
+  "server": {
+    "url": "https://cdn.jsdelivr.net/gh/JOLE-WU/iNews@master/docs/"
+  },
+  "plugins": {}
+}
