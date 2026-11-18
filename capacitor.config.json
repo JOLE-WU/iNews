@@ -3,6 +3,10 @@
   "appName": "iNews",
   "webDir": "docs",
   "bundledWebRuntime": false,
+  "server": {
+    "url": "https://jole-wu.github.io/iNews/",
+    "allowNavigation": ["*"]
+  },
   "ios": {
     "contentInset": "always",
     "scheme": "iNews"

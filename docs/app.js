@@ -359,9 +359,40 @@ const CHANNEL_NEWS = {
   ]
 };
 
-/* 封面图：40 张真实图片随 App 打包，离线也能显示 */
-let _coverSeq = 0;
-const nextCover = () => `covers/c${(_coverSeq++ % 40) + 1}.jpg`;
+/* 封面图：按主题匹配的真实图片（Unsplash CDN 远程加载，随内容远程更新）。
+   图片 URL 集中在 IMG 映射表，改封面只需改这里 push，永久免出包；
+   加载失败时回退到渐变色块 + emoji（见 renderFeed / openDetail 的 onerror）。 */
+const U = id => `https://images.unsplash.com/${id}?w=640&h=420&fit=crop&q=75`;
+const IMG = {
+  city:    U('photo-1480714378408-67cf0d13bc1b'), // 城市天际线
+  city2:   U('photo-1519501025264-65ba15a82390'), // 城市夜景
+  tech:    U('photo-1518770660439-4636190af475'), // 电路板
+  laptop:  U('photo-1498050108023-c5249f4df085'), // 编程/笔记本
+  space:   U('photo-1446776811953-b23d57bd21aa'), // 地球太空
+  coffee:  U('photo-1495474472287-4d71bcdd2085'), // 咖啡
+  car:     U('photo-1503376780353-7e6692767b70'), // 汽车
+  money:   U('photo-1554224155-6726b3ff858f'), // 财经/计算器
+  cash:    U('photo-1579621970563-ebec7560ff3e'), // 钞票
+  meeting: U('photo-1552664730-d307ca884978'), // 会议协作
+  team:    U('photo-1522071820081-009f0129c71c'), // 团队
+  desk:    U('photo-1497366754035-f200968a6e72'), // 办公桌
+  food:    U('photo-1504674900247-0877df9cc836'), // 美食
+  book:    U('photo-1507842217343-583bb7270b66'), // 书店/阅读
+  film:    U('photo-1489599849927-2ee91cede3ba'), // 影院
+  nature:  U('photo-1470071459604-3b5ec3a7fe05'), // 自然风景
+  road:    U('photo-1473448912268-2022ce9509d8'), // 公路出行
+  snow:    U('photo-1483664852095-d6cc6870702d'), // 雪景
+  shopping:U('photo-1441986300917-64674bd600d8'), // 购物
+  game:    U('photo-1538481199705-c710c4e965fc')  // 游戏
+};
+/* 每个频道的封面序列（与 CHANNEL_NEWS 条目顺序对应） */
+const CHANNEL_IMGS = {
+  recommend: [IMG.city, IMG.tech, IMG.space, IMG.coffee, IMG.car, IMG.book],
+  hot:       [IMG.road, IMG.money, IMG.snow, IMG.meeting, IMG.team, IMG.nature],
+  tech:      [IMG.laptop, IMG.desk, IMG.tech, IMG.meeting, IMG.team, IMG.laptop],
+  finance:   [IMG.cash, IMG.money, IMG.shopping, IMG.desk, IMG.shopping, IMG.money],
+  ent:       [IMG.film, IMG.film, IMG.food, IMG.book, IMG.book, IMG.game]
+};
 
 /* 生成每个频道的资讯推送（平台源署名 + 资讯草稿） */
 const CHANNEL_FEED = (() => {
@@ -369,10 +400,12 @@ const CHANNEL_FEED = (() => {
   CHANNELS.forEach(ch => {
     const sources = CHANNEL_SOURCES[ch.key];
     const drafts = CHANNEL_NEWS[ch.key];
+    const imgs = CHANNEL_IMGS[ch.key] || [];
     out[ch.key] = drafts.map((d, i) => {
       const sp = PLATFORMS[sources[i % sources.length]];
       return {
-        t: d[0], e: d[1], g: d[2], body: d[3], img: nextCover(),
+        t: d[0], e: d[1], g: d[2], body: d[3],
+        img: imgs[i % imgs.length],
         s: sp.name, c: sp.color,
         time: (i < 2 ? `${(i + 1) * 12} 分钟前` : `${i + 1} 小时前`),
         cm: 120 + ((i * 137 + ch.key.length * 53) % 780)
@@ -382,9 +415,9 @@ const CHANNEL_FEED = (() => {
   return out;
 })();
 
-/* FEED / 视频 也使用真实封面图 */
-FEED.forEach(f => { f.img = nextCover(); });
-VIDEOS.forEach(v => { v.img = nextCover(); });
+/* FEED / 视频 也使用主题封面 */
+FEED.forEach((f, i) => { f.img = [IMG.city, IMG.tech, IMG.coffee, IMG.space, IMG.nature, IMG.book, IMG.car, IMG.food, IMG.film, IMG.road, IMG.money, IMG.cash][i % 12]; });
+VIDEOS.forEach((v, i) => { v.img = [IMG.nature, IMG.tech, IMG.team, IMG.nature, IMG.food, IMG.laptop, IMG.city2, IMG.road][i % 8]; });
 
 /* ---------- 状态 ---------- */
 const state = {
@@ -701,10 +734,12 @@ function showInstall(force) {
   renderSearchDefault();
   bind();
 
-  setTimeout(() => showInstall(false), 4000);
+  // "添加到主屏幕"仅对浏览器 PWA 有意义，原生 App 壳内不显示
+  if (!window.Capacitor) setTimeout(() => showInstall(false), 4000);
 })();
 
-// PWA Service Worker
-if ('serviceWorker' in navigator) {
+// 服务 Worker：仅在浏览器 PWA 环境启用；Capacitor 原生壳内不注册，
+// 避免缓存挡住远程 Pages 的内容更新（原生壳每次启动直接请求远程，天然最新）。
+if ('serviceWorker' in navigator && !window.Capacitor) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
