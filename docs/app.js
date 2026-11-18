@@ -359,6 +359,10 @@ const CHANNEL_NEWS = {
   ]
 };
 
+/* 封面图：40 张真实图片随 App 打包，离线也能显示 */
+let _coverSeq = 0;
+const nextCover = () => `covers/c${(_coverSeq++ % 40) + 1}.jpg`;
+
 /* 生成每个频道的资讯推送（平台源署名 + 资讯草稿） */
 const CHANNEL_FEED = (() => {
   const out = {};
@@ -368,7 +372,7 @@ const CHANNEL_FEED = (() => {
     out[ch.key] = drafts.map((d, i) => {
       const sp = PLATFORMS[sources[i % sources.length]];
       return {
-        t: d[0], e: d[1], g: d[2], body: d[3],
+        t: d[0], e: d[1], g: d[2], body: d[3], img: nextCover(),
         s: sp.name, c: sp.color,
         time: (i < 2 ? `${(i + 1) * 12} 分钟前` : `${i + 1} 小时前`),
         cm: 120 + ((i * 137 + ch.key.length * 53) % 780)
@@ -377,6 +381,10 @@ const CHANNEL_FEED = (() => {
   });
   return out;
 })();
+
+/* FEED / 视频 也使用真实封面图 */
+FEED.forEach(f => { f.img = nextCover(); });
+VIDEOS.forEach(v => { v.img = nextCover(); });
 
 /* ---------- 状态 ---------- */
 const state = {
@@ -404,14 +412,7 @@ function toast(msg) {
   toast._t = setTimeout(() => el.classList.remove('show'), 1800);
 }
 
-/* ---------- 时钟 ---------- */
-function tick() {
-  const d = new Date();
-  const h = d.getHours(), m = String(d.getMinutes()).padStart(2, '0');
-  $('#sbTime').textContent = `${h}:${m}`;
-}
-tick();
-setInterval(tick, 20000);
+/* ---------- 时钟（原生状态栏由 App 壳提供，H5 不再绘制） ---------- */
 
 /* ---------- 首页：五大频道标签 ---------- */
 function renderChannels() {
@@ -426,7 +427,7 @@ function renderFeed() {
   const items = Array.from({ length: n }, (_, i) => pool[(state.feedOffset + i) % n]);
   $('#feed').innerHTML = items.map((it, i) => {
     const large = i === 0;
-    return `<article class="feed-card ${large ? 'large' : ''}" data-feed="${encodeURIComponent(it.t)}" style="animation-delay:${i * 55}ms">
+    return `<article class="feed-card ${large ? 'large' : ''}" data-feed="${encodeURIComponent(it.t)}">
       <div class="fc-main">
         <div class="fc-text">
           <div class="fc-title">${it.t}</div>
@@ -435,7 +436,10 @@ function renderFeed() {
             <span>${it.s}</span><span class="sep"></span><span>${it.time}</span>
           </div>
         </div>
-        <div class="fc-img" style="background:${it.g}">${it.e}</div>
+        <div class="fc-img" style="background:${it.g}">
+          <img src="${it.img}" alt="" loading="lazy" onerror="this.style.display='none'" />
+          <span class="fc-emoji">${it.e}</span>
+        </div>
       </div>
       <div class="fc-actions">
         <span class="act-like" data-like="${encodeURIComponent(it.t)}"><svg><use href="#i-heart"/></svg><b>${it.cm}</b></span>
@@ -477,8 +481,10 @@ function renderRankList() {
 /* ---------- 视频页 ---------- */
 function renderVideos() {
   $('#videoGrid').innerHTML = VIDEOS.map((v, i) => `
-    <div class="video-card" data-video="${encodeURIComponent(v.t)}" style="animation-delay:${i * 45}ms">
-      <div class="vc-cover" style="background:${v.g}">${v.e}
+    <div class="video-card" data-video="${encodeURIComponent(v.t)}">
+      <div class="vc-cover" style="background:${v.g}">
+        <img src="${v.img}" alt="" loading="lazy" onerror="this.style.display='none'" />
+        <span class="vc-emoji">${v.e}</span>
         <div class="vc-play"><svg><use href="#i-play"/></svg></div>
         <span class="vc-dur">${v.d}</span>
       </div>
@@ -488,30 +494,52 @@ function renderVideos() {
 }
 
 /* ---------- 详情 ---------- */
+/* 依据标题/来源生成延伸段落，让每条资讯都有完整"全文"阅读体验 */
+function expandArticle(item) {
+  const paras = (item.body || '').split('\n\n').filter(Boolean);
+  const s = item.s || '媒体';
+  return paras.concat([
+    `<p>${s}的报道发出后，迅速引发了广泛关注。短时间内，相关话题在多个平台持续发酵，大量网友在评论区分享了自己的看法与亲身经历，讨论热度不断攀升。</p>`,
+    `<p>有分析指出，这一现象背后折射出更深层的社会变化。随着生活方式与消费观念的持续演进，类似议题正越来越多地进入公众视野，值得长期观察。</p>`,
+    `<p>综合多方信息来看，事件的走向仍存在多种可能。业内人士建议，面对快速变化的信息，不妨保持理性判断，以官方发布与权威渠道为准。</p>`,
+    `<p>截至发稿，相关话题仍在持续更新中。iNews 将跟踪事件进展，第一时间为你带来后续报道。对于这件事，你怎么看？欢迎在评论区留下你的观点。</p>`
+  ]);
+}
+
 function openDetail(item, kind) {
-  let title, meta, cover, body, actions;
+  let title, meta, cover, coverImg, coverEmoji, paras;
   if (kind === 'feed') {
     title = item.t; meta = `${item.s} · ${item.time}`; cover = item.g;
-    body = item.body.split('\n\n').map(p => `<p>${p}</p>`).join('');
+    coverImg = item.img; coverEmoji = item.e;
+    paras = expandArticle(item);
   } else {
     title = item[0]; meta = `${PLATFORMS[state.rankPlatform]?.name || '热榜'} · 实时热点`;
     cover = 'linear-gradient(135deg,#ff5a3c,#ff9f2e)';
-    body = `<p>“${item[0]}”当前热度 <b>${fmtHeat(item[1])}</b>，位列榜单前列。该话题正在快速升温，引发大量网友讨论。</p>
-      <p>我们将持续关注事件进展，并为你带来后续报道。你可以收藏本条热点，方便稍后查看。</p>
-      <p>热榜聚合全网多个平台的热门话题，帮你用最少的时间了解正在发生的事。</p>`;
+    coverImg = ''; coverEmoji = '🔥';
+    paras = [
+      `<p>“${item[0]}”当前热度 <b>${fmtHeat(item[1])}</b>，位列榜单前列。该话题正在快速升温，短时间内引发了大量网友的关注与讨论，热度持续走高。</p>`,
+      `<p>从讨论内容来看，网友对该话题的关注点集中在事件本身的影响与后续发展上。多个相关话题词也同步登上热搜，形成了一定的传播声量。</p>`,
+      `<p>热榜聚合全网多个平台的热门话题，帮你用最少的时间了解正在发生的事。我们将持续关注事件进展，并为你带来后续报道。</p>`,
+      `<p>你可以在详情页收藏本条热点，方便稍后查看。对于这件事，你怎么看？欢迎在评论区留下你的观点。</p>`
+    ];
   }
+  const body = paras.map(p => `<p>${p}</p>`).join('');
   const key = title;
   const isLiked = state.liked.has(key), isSaved = state.saved.has(key);
   $('#detailScroll').innerHTML = `
     <h1 class="detail-title">${title}</h1>
     <div class="detail-meta"><span class="src-dot" style="background:#ff5a3c">热</span>${meta}</div>
-    <div class="detail-cover" style="background:${cover}">${kind === 'feed' ? item.e : '🔥'}</div>
+    <div class="detail-cover" style="background:${cover}">
+      ${coverImg ? `<img src="${coverImg}" alt="" onerror="this.style.display='none'" />` : ''}
+      <span class="dc-emoji">${coverEmoji}</span>
+    </div>
     <div class="detail-body">${body}</div>
     <div class="detail-actions">
       <button class="d-like ${isLiked ? 'liked' : ''}" data-dlike="${encodeURIComponent(key)}"><svg><use href="#i-heart"/></svg><span>${isLiked ? '已赞' : '点赞'}</span></button>
       <button class="d-save ${isSaved ? 'liked' : ''}" data-dsave="${encodeURIComponent(key)}"><svg><use href="#i-bookmark"/></svg><span>${isSaved ? '已收藏' : '收藏'}</span></button>
       <button class="d-share"><svg><use href="#i-share"/></svg><span>分享</span></button>
     </div>`;
+  $('#detailScroll').scrollTop = 0;
   openSheet('#detailSheet');
 }
 
@@ -629,13 +657,8 @@ function bind() {
     if (sh) share();
   });
 
-  // 主题 / 壁纸
-  $('#themeBtn').addEventListener('click', toggleTheme);
+  // 主题（保留"我的"页入口）/ 分享 / 安装
   $('#themeBtn2').addEventListener('click', toggleTheme);
-  $('#wallpaperBtn').addEventListener('click', nextWP);
-
-  // 通知 / 分享 / 安装
-  $('#notifyBtn').addEventListener('click', () => toast('暂无新通知'));
   $('#shareBtn').addEventListener('click', share);
   $('#installBtn').addEventListener('click', () => showInstall(true));
   $('#installClose').addEventListener('click', () => { $('#installTip').classList.remove('show'); localStorage.setItem('rb-tip-hidden', '1'); });

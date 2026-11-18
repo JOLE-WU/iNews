@@ -58,27 +58,11 @@
     <div class="wp-grain"></div>
   </div>
 
-  <!-- iOS 状态栏 -->
-  <div class="status-bar">
-    <span class="sb-time" id="sbTime">9:41</span>
-    <div class="dynamic-island"></div>
-    <div class="sb-right">
-      <svg class="sb-ico" viewBox="0 0 20 14"><path d="M1 10h2v3H1zm4-3h2v6H5zm4-3h2v9H9zm4-3h2v12h-2z" fill="currentColor"/></svg>
-      <svg class="sb-ico" viewBox="0 0 18 14"><path d="M9 2C5.5 2 2.6 3.4 1 5.5l1.6 1.4C4 5.1 6.3 4 9 4s5 1.1 6.4 2.9L17 5.5C15.4 3.4 12.5 2 9 2Zm0 4c-2 0-3.7.9-4.8 2.3L9 13l4.8-4.7C12.7 6.9 11 6 9 6Z" fill="currentColor"/></svg>
-      <div class="sb-battery"><span></span></div>
-    </div>
-  </div>
-
-  <!-- 顶部导航 -->
+  <!-- 顶部导航（原生壳已提供状态栏，此处只留品牌栏） -->
   <header class="topbar" id="topbar">
     <div class="brand">
       <span class="brand-mark"><svg><use href="#i-flame"/></svg></span>
       <span class="brand-text">iNews<span class="brand-dot">.</span></span>
-    </div>
-    <div class="top-actions">
-      <button class="icon-btn" id="wallpaperBtn" aria-label="切换壁纸"><svg><use href="#i-image"/></svg></button>
-      <button class="icon-btn" id="themeBtn" aria-label="切换深浅色"><svg><use href="#i-moon"/></svg></button>
-      <button class="icon-btn dot-btn" id="notifyBtn" aria-label="通知"><svg><use href="#i-bell"/></svg><i></i></button>
     </div>
   </header>
 
@@ -163,7 +147,7 @@
   <nav class="tabbar" id="tabbar">
     <button class="tab active" data-tab="home"><svg><use href="#i-home"/></svg><span>首页</span></button>
     <button class="tab" data-tab="rank"><svg><use href="#i-rank"/></svg><span>热榜</span></button>
-    <button class="tab tab-video" data-tab="video"><span class="tv-circle"><svg><use href="#i-play"/></svg></span><span>视频</span></button>
+    <button class="tab" data-tab="video"><svg><use href="#i-play"/></svg><span>视频</span></button>
     <button class="tab" data-tab="me"><svg><use href="#i-user"/></svg><span>我的</span></button>
   </nav>
 
