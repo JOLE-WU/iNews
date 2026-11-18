@@ -1,0 +1,147 @@
+name: Build iNews IPA
+
+# Builds the iNews iOS app on a macOS runner.
+#   • Every manual run produces an UNSIGNED .ipa for sideloading (AltStore /
+#     Sideloadly / 巨魔 / 爱思 etc.). The app auto-resigns with the user's
+#     Apple ID during sideloading.
+#   • If Apple signing secrets are configured, it ALSO produces a signed .ipa.
+#
+# The native shell is a thin Capacitor WebView container. Content lives at
+# the remote URL in capacitor.config.ts; updating content needs no new IPA.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号（如 1.0.0）'
+        required: false
+        default: '1.0.0'
+        type: string
+      build_number:
+        description: '构建号（整数，留空自动用运行编号）'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: build-inews-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-ipa:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      INEWS_BUNDLE_ID: ${{ vars.INEWS_BUNDLE_ID || 'com.jolewinews.app' }}
+      DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID || '' }}
+      EXPORT_METHOD: ${{ vars.EXPORT_METHOD || 'development' }}
+      INEWS_VERSION: ${{ inputs.version || '1.0.0' }}
+      INEWS_BUILD: ${{ inputs.build_number || github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate version metadata
+        run: |
+          if ! printf '%s' "$INEWS_VERSION" | grep -Eq '^[0-9]+(\.[0-9]+){0,2}$'; then
+            echo "::error::版本号格式不合法：$INEWS_VERSION"
+            exit 1
+          fi
+          if ! printf '%s' "$INEWS_BUILD" | grep -Eq '^[0-9]+$'; then
+            echo "::error::构建号必须是整数：$INEWS_BUILD"
+            exit 1
+          fi
+          echo "### 📦 iNews v${INEWS_VERSION} (build ${INEWS_BUILD})" >> "$GITHUB_STEP_SUMMARY"
+          echo "commit: \`$GITHUB_SHA\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install JS dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Generate Capacitor iOS project
+        run: |
+          npx cap add ios
+          npx cap sync ios
+
+      - name: Apply iNews native overrides (icon, name, version, bundle id)
+        run: node scripts/prepare-ios.mjs
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios/App
+          pod install --repo-update || pod install
+
+      # ---------- UNSIGNED IPA (always, for sideloading) ----------
+      - name: Archive (unsigned)
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/iNews.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            clean archive
+
+      - name: Package unsigned IPA
+        run: |
+          IPA="iNews-v${INEWS_VERSION}-b${INEWS_BUILD}-unsigned.ipa"
+          mkdir -p build/Payload
+          cp -R "build/iNews.xcarchive/Products/Applications/App.app" build/Payload/iNews.app
+          cd build && zip -qry "../$IPA" Payload
+          cd .. && rm -rf build/Payload
+          printf 'iNews v%s (build %s)\nbundle: %s\ncommit: %s\nbuilt: %s\n' \
+            "$INEWS_VERSION" "$INEWS_BUILD" "$INEWS_BUNDLE_ID" "$GITHUB_SHA" \
+            "$(date -u +%FT%TZ)" > iNews-version.txt
+          echo "打包完成：$IPA"
+          cat iNews-version.txt
+
+      # ---------- SIGNED IPA (only when secrets present) ----------
+      - name: Import signing certificate & provisioning profile
+        if: env.DEVELOPMENT_TEAM != ''
+        run: |
+          echo "${{ secrets.APPLE_CERTIFICATE_P12 }}" | base64 --decode > build/cert.p12
+          echo "${{ secrets.APPLE_PROVISIONING_PROFILE }}" | base64 --decode > build/profile.mobileprovision
+          KEYCHAIN=build/inews.keychain-db
+          KEYPASS="$(openssl rand -base64 24)"
+          security create-keychain -p "$KEYPASS" "$KEYCHAIN"
+          security set-keychain-settings -lut 3600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYPASS" "$KEYCHAIN"
+          security import build/cert.p12 -k "$KEYCHAIN" -P "${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" -A -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYPASS" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp build/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+
+      - name: Archive + export signed IPA
+        if: env.DEVELOPMENT_TEAM != ''
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/iNews-signed.xcarchive" \
+            clean archive
+          xcodebuild -exportArchive \
+            -archivePath "$PWD/build/iNews-signed.xcarchive" \
+            -exportPath "$PWD/build/export" \
+            -exportOptionsPlist build/ExportOptions.plist
+          cp build/export/App.ipa "iNews-v${INEWS_VERSION}-b${INEWS_BUILD}-signed.ipa"
+
+      # ---------- artifacts ----------
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: iNews-IPA-v${{ env.INEWS_VERSION }}-b${{ env.INEWS_BUILD }}
+          path: |
+            iNews-v*.ipa
+            iNews-version.txt
+          if-no-files-found: error

@@ -1,0 +1,19 @@
+{
+  "name": "inews",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "iNews — 资讯聚合 iOS App（Capacitor WebView 壳 + 远程内容）",
+  "scripts": {
+    "cap:add:ios": "cap add ios",
+    "cap:sync": "cap sync ios",
+    "ios:prepare": "node scripts/prepare-ios.mjs"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
+  }
+}

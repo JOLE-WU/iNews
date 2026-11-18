@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="iNews" />
+  <meta name="description" content="iNews · 一站式资讯聚合，一屏尽览全网热点" />
+  <title>iNews · 资讯聚合</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ============ SVG 图标库 ============ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M13.5 2c.4 3-1.3 4.6-2.8 6.1C9 9.9 7.5 11.6 7.5 14.5A5.5 5.5 0 0 0 13 20a5.5 5.5 0 0 0 5.5-5.5c0-2.6-1.1-4.4-2.4-6.2-.3 1.4-1.1 2.2-2 2.6.4-3.1-.3-6.6-2.6-8.9Z" fill="currentColor"/></symbol>
+  <symbol id="i-fire-solid" viewBox="0 0 24 24"><path d="M13.5 2c.4 3-1.3 4.6-2.8 6.1C9 9.9 7.5 11.6 7.5 14.5A5.5 5.5 0 0 0 13 20a5.5 5.5 0 0 0 5.5-5.5c0-2.6-1.1-4.4-2.4-6.2-.3 1.4-1.1 2.2-2 2.6.4-3.1-.3-6.6-2.6-8.9Z" fill="currentColor"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16.5 16.5 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-1.6 5.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 5v6h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-8.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></symbol>
+  <symbol id="i-rank" viewBox="0 0 24 24"><path d="M5 20V10m7 10V4m7 16v-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="5" cy="7" r="1.6" fill="currentColor"/><circle cx="12" cy="3" r="1.6" fill="currentColor"/><circle cx="19" cy="10" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="m10 9 5 3-5 3V9Z" fill="currentColor"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.6-7-9.4A4.1 4.1 0 0 1 12 8a4.1 4.1 0 0 1 7 2.6C19 15.4 12 20 12 20Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-comment" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-8 8 9 9 0 0 1-3-.5L4 21l1.4-4A8 8 0 1 1 20 12Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V3m0 0L8 7m4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 4h12v17l-6-4-6 4V4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 14 6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 10 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 19a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8.5" cy="9" r="1.5" fill="currentColor"/><path d="m4 18 5-5 3.5 3.5L16 13l4 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-quote" viewBox="0 0 24 24"><path d="M9.5 6C6.5 7.5 5 10 5 13.5V18h6v-6H8c.2-1.8 1-3 2.8-4L9.5 6Zm9 0C15.5 7.5 14 10 14 13.5V18h6v-6h-3c.2-1.8 1-3 2.8-4L18.5 6Z" fill="currentColor"/></symbol>
+</svg>
+
+<div class="app" id="app">
+
+  <!-- 壁纸背景 -->
+  <div class="wallpaper" id="wallpaper">
+    <div class="wp-blob b1"></div>
+    <div class="wp-blob b2"></div>
+    <div class="wp-blob b3"></div>
+    <div class="wp-grain"></div>
+  </div>
+
+  <!-- iOS 状态栏 -->
+  <div class="status-bar">
+    <span class="sb-time" id="sbTime">9:41</span>
+    <div class="dynamic-island"></div>
+    <div class="sb-right">
+      <svg class="sb-ico" viewBox="0 0 20 14"><path d="M1 10h2v3H1zm4-3h2v6H5zm4-3h2v9H9zm4-3h2v12h-2z" fill="currentColor"/></svg>
+      <svg class="sb-ico" viewBox="0 0 18 14"><path d="M9 2C5.5 2 2.6 3.4 1 5.5l1.6 1.4C4 5.1 6.3 4 9 4s5 1.1 6.4 2.9L17 5.5C15.4 3.4 12.5 2 9 2Zm0 4c-2 0-3.7.9-4.8 2.3L9 13l4.8-4.7C12.7 6.9 11 6 9 6Z" fill="currentColor"/></svg>
+      <div class="sb-battery"><span></span></div>
+    </div>
+  </div>
+
+  <!-- 顶部导航 -->
+  <header class="topbar" id="topbar">
+    <div class="brand">
+      <span class="brand-mark"><svg><use href="#i-flame"/></svg></span>
+      <span class="brand-text">iNews<span class="brand-dot">.</span></span>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="wallpaperBtn" aria-label="切换壁纸"><svg><use href="#i-image"/></svg></button>
+      <button class="icon-btn" id="themeBtn" aria-label="切换深浅色"><svg><use href="#i-moon"/></svg></button>
+      <button class="icon-btn dot-btn" id="notifyBtn" aria-label="通知"><svg><use href="#i-bell"/></svg><i></i></button>
+    </div>
+  </header>
+
+  <!-- 主滚动区 -->
+  <main class="scroll" id="scroll">
+
+    <!-- ======= 首页（小组件桌面） ======= -->
+    <section class="page active" data-page="home">
+
+      <!-- 头条式顶部：搜索 -->
+      <div class="news-top">
+        <button class="hero-search" id="heroSearch">
+          <svg><use href="#i-search"/></svg>
+          <span>搜索资讯、热点与话题</span>
+          <span class="hs-badge">聚合</span>
+        </button>
+      </div>
+
+      <!-- 频道标签栏（今日头条式，吸顶） -->
+      <nav class="channel-tabs" id="channelTabs"></nav>
+
+      <!-- 资讯推送流 -->
+      <div class="feed" id="feed"></div>
+      <div class="feed-end">· 已经到底啦，下拉刷新看看新内容 ·</div>
+    </section>
+
+    <!-- ======= 热榜页 ======= -->
+    <section class="page" data-page="rank">
+      <div class="rank-page">
+        <div class="rank-cats" id="rankCats"></div>
+        <div class="rank-tabs" id="rankTabs"></div>
+        <div class="rank-banner reveal">
+          <div class="rb-icon"><svg><use href="#i-flame"/></svg></div>
+          <div class="rb-text">
+            <h3 id="rankBannerTitle">微博热搜榜</h3>
+            <p>每 10 分钟更新 · 聚合全网热门话题</p>
+          </div>
+          <button class="rb-refresh" id="rankRefresh"><svg><use href="#i-refresh"/></svg></button>
+        </div>
+        <div class="rank-list" id="rankList"></div>
+      </div>
+    </section>
+
+    <!-- ======= 视频页 ======= -->
+    <section class="page" data-page="video">
+      <div class="video-head">
+        <h2>热点视频</h2>
+        <p>为你精选的今日热门</p>
+      </div>
+      <div class="video-grid" id="videoGrid"></div>
+    </section>
+
+    <!-- ======= 我的页 ======= -->
+    <section class="page" data-page="me">
+      <div class="me-page">
+        <div class="me-hero">
+          <div class="me-avatar"><svg><use href="#i-user"/></svg></div>
+          <h2>热点观察者</h2>
+          <p>每天 3 分钟，知晓天下事</p>
+          <div class="me-stats">
+            <div><strong>128</strong><span>已读</span></div>
+            <div><strong>36</strong><span>收藏</span></div>
+            <div><strong>7</strong><span>连续天数</span></div>
+          </div>
+        </div>
+        <div class="me-group">
+          <button class="me-item" id="installBtn"><span class="mi-ico c1"><svg><use href="#i-plus"/></svg></span><span>添加到主屏幕</span><svg class="mi-arrow"><use href="#i-chevron"/></svg></button>
+          <button class="me-item"><span class="mi-ico c2"><svg><use href="#i-bookmark"/></svg></span><span>我的收藏</span><svg class="mi-arrow"><use href="#i-chevron"/></svg></button>
+          <button class="me-item"><span class="mi-ico c3"><svg><use href="#i-clock"/></svg></span><span>浏览历史</span><svg class="mi-arrow"><use href="#i-chevron"/></svg></button>
+        </div>
+        <div class="me-group">
+          <button class="me-item" id="themeBtn2"><span class="mi-ico c4"><svg><use href="#i-moon"/></svg></span><span>深色模式</span><span class="mi-toggle" id="themeToggle"></span></button>
+          <button class="me-item" id="shareBtn"><span class="mi-ico c5"><svg><use href="#i-share"/></svg></span><span>分享给好友</span><svg class="mi-arrow"><use href="#i-chevron"/></svg></button>
+        </div>
+        <p class="me-foot">iNews · 资讯聚合 v1.0</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 底部 Tab Bar -->
+  <nav class="tabbar" id="tabbar">
+    <button class="tab active" data-tab="home"><svg><use href="#i-home"/></svg><span>首页</span></button>
+    <button class="tab" data-tab="rank"><svg><use href="#i-rank"/></svg><span>热榜</span></button>
+    <button class="tab tab-video" data-tab="video"><span class="tv-circle"><svg><use href="#i-play"/></svg></span><span>视频</span></button>
+    <button class="tab" data-tab="me"><svg><use href="#i-user"/></svg><span>我的</span></button>
+  </nav>
+
+  <!-- 搜索面板 -->
+  <div class="sheet" id="searchSheet">
+    <div class="sheet-backdrop" data-close></div>
+    <div class="search-panel">
+      <div class="sp-grabber"></div>
+      <div class="search-bar">
+        <svg><use href="#i-search"/></svg>
+        <input type="text" id="searchInput" placeholder="搜索热点、话题、资讯" autocomplete="off" />
+        <button id="searchClear"><svg><use href="#i-close"/></svg></button>
+      </div>
+      <div class="search-body" id="searchBody"></div>
+    </div>
+  </div>
+
+  <!-- 详情面板 -->
+  <div class="sheet" id="detailSheet">
+    <div class="sheet-backdrop" data-close></div>
+    <div class="detail-panel">
+      <div class="sp-grabber"></div>
+      <button class="detail-close" data-close><svg><use href="#i-close"/></svg></button>
+      <div class="detail-scroll" id="detailScroll"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"><svg><use href="#i-check"/></svg><span id="toastText">已收藏</span></div>
+
+  <!-- 安装提示 -->
+  <div class="install-tip" id="installTip">
+    <span class="it-icon"><svg><use href="#i-flame"/></svg></span>
+    <div><strong>添加到主屏幕</strong><p>在 Safari 中点击分享 → 添加到主屏幕，即可像 App 一样使用</p></div>
+    <button id="installClose"><svg><use href="#i-close"/></svg></button>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "brand": "iNews",
+  "title": "iNews · 资讯聚合",
+  "accent": "#ff5a3c",
+  "notice": "依据你的兴趣精选",
+  "channels": [
+    { "key": "recommend", "name": "推荐" },
+    { "key": "hot", "name": "热点" },
+    { "key": "tech", "name": "科技" },
+    { "key": "finance", "name": "财经" },
+    { "key": "ent", "name": "娱乐" }
+  ],
+  "_tip": "本文件可放在服务器上随时修改：品牌名、标题、主题色(accent)、推荐语(notice)、各频道名称。改完即生效，无需重新打包 IPA。"
+}
