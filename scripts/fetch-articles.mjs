@@ -27,12 +27,12 @@ const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/6
 
 /* ---------- 源站直抓配置：列表页 + 文章链接模式 + 频道归属 ---------- */
 const DIRECT_SOURCES = [
-  { name: '澎湃新闻', channel: 'hot',      color: '#d4442b', list: 'https://www.thepaper.cn/',                  pat: /newsDetail_forward_\d+/g },
-  { name: '澎湃·文娱', channel: 'ent',      color: '#b23a6b', list: 'https://www.thepaper.cn/channel_25953',      pat: /newsDetail_forward_\d+/g },
-  { name: '第一财经', channel: 'finance',   color: '#c8102e', list: 'https://www.yicai.com/',                    pat: /news\/\d+\.html/g },
-  { name: '华尔街见闻', channel: 'finance',  color: '#0b5d3b', list: 'https://wallstreetcn.com/',                 pat: /articles\/\d+/g },
-  { name: '爱范儿',   channel: 'tech',      color: '#1a6cd6', list: 'https://www.ifanr.com/',                    pat: /https:\/\/www\.ifanr\.com\/\d{6,}/g },
-  { name: '少数派',   channel: 'tech',      color: '#d4483a', list: 'https://sspai.com/',                        pat: /\/post\/\d+/g }
+  { name: '澎湃新闻', channel: 'hot',      color: '#d4442b', list: ['https://www.thepaper.cn/channel_25950', 'https://www.thepaper.cn/'], pat: /newsDetail_forward_\d+/g },
+  { name: '澎湃·文娱', channel: 'ent',      color: '#b23a6b', list: ['https://www.thepaper.cn/channel_25953'],      pat: /newsDetail_forward_\d+/g },
+  { name: '第一财经', channel: 'finance',   color: '#c8102e', list: ['https://www.yicai.com/'],                    pat: /news\/\d+\.html/g },
+  { name: '华尔街见闻', channel: 'finance',  color: '#0b5d3b', list: ['https://wallstreetcn.com/'],                 pat: /articles\/\d+/g },
+  { name: '爱范儿',   channel: 'tech',      color: '#1a6cd6', list: ['https://www.ifanr.com/'],                    pat: /https:\/\/www\.ifanr\.com\/\d{6,}/g },
+  { name: '少数派',   channel: 'tech',      color: '#d4483a', list: ['https://sspai.com/'],                        pat: /\/post\/\d+/g }
 ];
 
 /* ---------- iTab 补充来源：列表页 JS 渲染抓不到，用 iTab 榜单拿文章链接 ---------- */
@@ -137,21 +137,25 @@ async function mapLimit(items, limit, fn) {
 async function main() {
   const jobs = [];
 
-  /* ① 直抓源站列表页拿文章链接 */
+  /* ① 直抓源站列表页拿文章链接（支持多个列表页回退） */
   console.log('[fetch-articles] ① 直抓源站列表页…');
   for (const s of DIRECT_SOURCES) {
-    const html = await fetchHtml(s.list);
-    if (!html) { console.log(`  ${s.name}: 列表页抓取失败`); continue; }
-    const origin = new URL(s.list).origin;
-    const found = new Set();
-    for (const m of html.matchAll(s.pat)) {
-      let link = m[0];
-      if (!/^https?:/.test(link)) link = origin + (link.startsWith('/') ? '' : '/') + link;
-      if (found.has(link)) continue;
-      found.add(link);
+    const lists = Array.isArray(s.list) ? s.list : [s.list];
+    let links = [];
+    for (const listUrl of lists) {
+      const html = await fetchHtml(listUrl);
+      if (!html) { console.log(`  ${s.name}: ${listUrl} 抓取失败`); continue; }
+      const origin = new URL(listUrl).origin;
+      const found = new Set();
+      for (const m of html.matchAll(s.pat)) {
+        let link = m[0];
+        if (!/^https?:/.test(link)) link = origin + (link.startsWith('/') ? '' : '/') + link;
+        found.add(link);
+      }
+      links = [...found].slice(0, PER_SOURCE);
+      console.log(`  ${s.name}: ${links.length} 篇文章链接（${listUrl}）`);
+      if (links.length) break;
     }
-    const links = [...found].slice(0, PER_SOURCE);
-    console.log(`  ${s.name}: ${links.length} 篇文章链接`);
     links.forEach(l => jobs.push({ name: s.name, channel: s.channel, color: s.color, link: l }));
   }
 
