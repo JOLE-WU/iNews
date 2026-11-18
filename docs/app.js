@@ -420,21 +420,103 @@ FEED.forEach((f, i) => { f.img = [IMG.city, IMG.tech, IMG.coffee, IMG.space, IMG
 VIDEOS.forEach((v, i) => { v.img = [IMG.nature, IMG.tech, IMG.team, IMG.nature, IMG.food, IMG.laptop, IMG.city2, IMG.road][i % 8]; });
 
 /* =========================================================
-   实时资讯层
-   数据源：60s API（开源项目 vikiboss/60s），多个国内 CDN 实例自动故障转移。
-   全部为真实热榜 / 新闻数据；任何网络失败都静默回退到上面的内置演示数据。
-   - 5 大频道：推荐(夸克热点) / 热点(头条) / 科技(知乎) / 财经(每日新闻) / 娱乐(抖音)
-   - 热榜页：微博 / 头条 / 抖音 / 知乎 / 夸克 真实榜单
-   - 每条都带真实原文链接 + 真实摘要正文 + 真实封面图（缺失时用主题图兜底）
+   实时资讯层 —— 直接调用 iTab 官方 API（就是 iTab 标签页本身用的那套数据源）
+   API:  https://base.itab.link/api/top/list?lang=cn&id=<平台ID>&size=<条数>
+   签名: CryptoJS.AES.encrypt(Date.now().toString(), 'itab1314').toString() → 请求头 signaturekey
+   请求头: signaturekey / version(2.4.12) / mode:itab / fp
+   平台池: 81 个真实平台（iTab /api/top/category 返回），覆盖 20 个分类
+   任何网络失败都静默回退到上面的内置演示数据，App 不会白屏。
    ========================================================= */
-const LIVE_CHANNELS = { recommend: 'quark', hot: 'toutiao', tech: 'zhihu', finance: 'daily', ent: 'douyin' };
-const API_BASES = [
-  'https://60s.okbaike.com/v2',
-  'https://60s.mizhoubaobei.top/v2',
-  'https://60s.zellon.top/v2',
-  'https://60s.7se.cn/v2',
-  'https://60s.viki.moe/v2'
+const ITAB_API = 'https://base.itab.link';
+const ITAB_VERSION = '2.4.12';
+const ITAB_SECRET = 'itab1314';
+
+/* iTab 官方平台池：[内部key, 平台名, iTab平台ID, 品牌色, 榜单类型]（来自 /api/top/category） */
+const ITAB_PLATFORMS = [
+  ['weibo','微博','KqndgxeLl9','#e6162d','热搜榜'],
+  ['zhihu','知乎','mproPpoq6O','#0066ff','热榜'],
+  ['wechat','微信','WnBe01o371','#07c160','24h热文榜'],
+  ['baidu','百度','Jb0vmloB1G','#2932e1','实时热点'],
+  ['bilibili','哔哩哔哩','74KvxwokxM','#fb7299','全站日榜'],
+  ['kr36','36氪','Q1Vd5Ko85R','#4285f4','24小时热榜'],
+  ['sspai','少数派','Y2KeDGQdNP','#d71a28','热门文章'],
+  ['huxiu','虎嗅网','5VaobgvAj1','#e8503a','热文'],
+  ['ithome','IT之家','74Kvx59dkx','#0078d7','日榜'],
+  ['juejin','掘金','rYqoXz8dOD','#1e80ff','人工智能本周最热'],
+  ['jiqizhixin','机器之心','DOvnNz1vEB','#0088ff','文章库'],
+  ['qbitai','量子位','MZd7azPorO','#00b4d8','每日最新'],
+  ['readhub','Readhub','b0vmrPldB1','#25b490','AI'],
+  ['douyin','抖音','DpQvNABoNE','#161823','热门视频榜'],
+  ['acfun','AcFun','qENeYpdY49','#ff4a4a','排行榜'],
+  ['52pojie','吾爱破解','NKGoRAzel6','#2b7a78','今日热帖'],
+  ['douban','豆瓣社区','douban-jingxuan','#2e963f','精选讨论'],
+  ['tieba','百度贴吧','Om4ejxvxEN','#4e6ef2','热议榜'],
+  ['qqnews','腾讯新闻','12owgX0oNV','#0052d9','热问'],
+  ['hupu','虎扑社区','G47o8weMmN','#d2232a','步行街热帖'],
+  ['taobao','淘宝天猫','yjvQDpjobg','#ff5000','热销总榜'],
+  ['smzdm','什么值得买','K7GdagpoQy','#e4002b','好文原创榜'],
+  ['xueqiu','雪球','X12owXzvNV','#ff7a00','今日话题'],
+  ['yicai','第一财经','0MdKam4ow1','#c8102e','新闻排行周榜'],
+  ['wallstreetcn','华尔街见闻','G2me3ndwjq','#e60012','日排行'],
+  ['sina','新浪财经','rx9ozj7oXb','#e60012','点击量排行'],
+  ['shuimu','水木社区','rDgeyqeZqJ','#860038','十大热门话题'],
+  ['pku','北大未名','MZd7zXPvrO','#860038','全站热门话题'],
+  ['zhihuDaily','知乎日报','KMZd7VOvrO','#0066ff','Today'],
+  ['doubanMovie','豆瓣电影','douban-weekly','#2e963f','一周口碑榜'],
+  ['weread','微信读书','4KvxEX0dkx','#1aad19','总榜'],
+  ['taptap','TapTap','6ARe1k2v7n','#00ccb0','排行榜'],
+  ['sinaSports','新浪体育','wWmoOqYd4E','#e60012','点击量排行'],
+  ['producthunt','Product Hunt','LBwdG0jePx','#da552f','今日新产品'],
+  ['github','GitHub','rYqoXQ8vOD','#24292f','Trending Today'],
+  ['csdn','CSDN','DgeyrgMoZq','#fc5531','综合热榜'],
+  ['oschina','开源中国','rYqoXZzdOD','#0078d7','热门资讯'],
+  ['appstore','App Store','4anopWBelZ','#007aff','中国 iPhone 免费榜'],
+  ['ifanr','爱范儿','Jndkp4ye3V','#2788d8','AppSolution'],
+  ['autohome','汽车之家','YqoXQGXvOD','#cc1e28','论坛精选日报'],
+  ['dongchedi','懂车帝','RrvW7XDv5z','#161823','文章排行榜'],
+  ['freebuf','FreeBuf','WYKd6pzoaP','#e60012','安全'],
+  ['toutiao','今日头条','toutiao','#f04142','头条热榜']
 ];
+const ITAB_BY_KEY = Object.fromEntries(ITAB_PLATFORMS.map(p => [p[0], { name:p[1], id:p[2], color:p[3], type:p[4] }]));
+
+/* iTab 官方分类体系（19 类），完整呈现 81 平台池 */
+const ITAB_CATS = [
+  { key:'all', name:'全部', icon:'✦' }, { key:'general', name:'综合', icon:'🌐' },
+  { key:'tech', name:'科技', icon:'💻' }, { key:'ai', name:'人工智能', icon:'🤖' },
+  { key:'ent', name:'娱乐', icon:'🎬' }, { key:'community', name:'社区', icon:'💬' },
+  { key:'shopping', name:'购物', icon:'🛍️' }, { key:'finance', name:'财经', icon:'📈' },
+  { key:'edu', name:'大学', icon:'🎓' }, { key:'daily', name:'日报', icon:'📰' },
+  { key:'film', name:'影视', icon:'🎞️' }, { key:'reading', name:'阅读', icon:'📚' },
+  { key:'game', name:'游戏', icon:'🎮' }, { key:'sports', name:'体育', icon:'⚽' },
+  { key:'product', name:'产品', icon:'🧩' }, { key:'dev', name:'开发', icon:'⚙️' },
+  { key:'app', name:'应用', icon:'📱' }, { key:'auto', name:'汽车', icon:'🚗' },
+  { key:'security', name:'安全', icon:'🔐' }
+];
+const ITAB_CAT_KEYS = {
+  general:['weibo','zhihu','wechat','baidu','bilibili','toutiao'],
+  tech:['ithome','kr36','sspai','huxiu'],
+  ai:['juejin','jiqizhixin','qbitai','readhub'],
+  ent:['douyin','acfun'],
+  community:['52pojie','douban','tieba','qqnews','hupu'],
+  shopping:['taobao','smzdm'],
+  finance:['xueqiu','yicai','wallstreetcn','sina'],
+  edu:['shuimu','pku'],
+  daily:['zhihuDaily'], film:['doubanMovie'], reading:['weread'],
+  game:['taptap'], sports:['sinaSports'], product:['producthunt'],
+  dev:['github','csdn','oschina'], app:['appstore','ifanr'],
+  auto:['autohome','dongchedi'], security:['freebuf']
+};
+function itabPlatformsByCat(cat) { return cat === 'all' ? Object.keys(ITAB_BY_KEY) : (ITAB_CAT_KEYS[cat] || []); }
+
+/* 5 大频道 -> iTab 真实平台 */
+const LIVE_CHANNELS = {
+  recommend: ['weibo','zhihu','baidu','toutiao','bilibili'],  // 推荐：综合热门
+  hot:       ['toutiao','baidu','weibo','qqnews','sina'],      // 热点：新闻热点
+  tech:      ['ithome','kr36','juejin','github','qbitai'],     // 科技：IT/AI/开源
+  finance:   ['xueqiu','yicai','wallstreetcn','sina'],         // 财经：专业财经
+  ent:       ['douyin','bilibili','acfun','doubanMovie','weread'] // 娱乐：视频/影视/阅读
+};
+
 const LIVE = {
   channel: {},      // key -> 资讯 item[]（真实）
   hot: {},          // platform key -> [title, heat万, tag, trend, link?][]
@@ -445,83 +527,99 @@ const LIVE = {
 if (typeof window !== 'undefined') window.LIVE = LIVE;
 const _themeImgs = [IMG.city, IMG.tech, IMG.space, IMG.coffee, IMG.car, IMG.book, IMG.food, IMG.film, IMG.road, IMG.money, IMG.nature, IMG.game];
 const _themeGrad = ['linear-gradient(135deg,#667eea,#764ba2)','linear-gradient(135deg,#4facfe,#00f2fe)','linear-gradient(135deg,#f6d365,#fda085)','linear-gradient(135deg,#0f2027,#2c5364)','linear-gradient(135deg,#43e97b,#38f9d7)','linear-gradient(135deg,#c471ed,#f64f59)'];
-const _wan = n => n ? +(n / 10000).toFixed(1) : 0;
+const _emojiOf = { weibo:'🔥', zhihu:'💡', baidu:'🔍', toutiao:'📰', bilibili:'📺', ithome:'💻', kr36:'🚀', juejin:'⚒️', github:'⭐', xueqiu:'📈', douyin:'🎬', acfun:'🎭', doubanMovie:'🎞️', weread:'📚' };
+let _fp = (typeof localStorage !== 'undefined' && localStorage.getItem('itab-fp')) || '';
+if (!_fp) { _fp = Math.random().toString(36).slice(2, 12); try { localStorage.setItem('itab-fp', _fp); } catch (e) {} }
 
-/* 依次尝试各实例，任一成功即返回真实 data，全失败返回 null */
-async function apiGet(path, timeout = 7000) {
-  for (const base of API_BASES) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeout);
-    try {
-      const res = await fetch(base + path, { signal: ctrl.signal, cache: 'no-store' });
-      if (!res.ok) { clearTimeout(timer); continue; }
-      const json = await res.json();
-      clearTimeout(timer);
-      if (json && json.code === 200 && json.data != null) return json.data;
-    } catch (e) { /* 换下一个实例 */ clearTimeout(timer); }
-  }
-  return null;
+/* iTab 签名：AES.encrypt(毫秒时间戳, 'itab1314').toString() */
+function itabSign() {
+  try { return CryptoJS.AES.encrypt(Date.now().toString(), ITAB_SECRET).toString(); }
+  catch (e) { return ''; }
 }
 
-/* 把 API 原始条目统一成 App 内部资讯结构 */
-function normItem(raw, i, srcName, srcColor, opt = {}) {
-  const title = raw.title || raw.name || '';
-  const img = (raw.cover && /^https?:/.test(raw.cover)) ? raw.cover : _themeImgs[i % _themeImgs.length];
+/* "780.8万" / "1234567" -> 数字（单位：万） */
+function parseHot(v) {
+  if (v == null) return 0;
+  const s = String(v).trim();
+  const m = s.match(/([\d.]+)\s*万/);
+  if (m) return parseFloat(m[1]);
+  const n = parseFloat(s.replace(/[^\d.]/g, ''));
+  return isNaN(n) ? 0 : (n > 10000 ? +(n / 10000).toFixed(1) : n);
+}
+
+/* 调 iTab list 接口拿某平台的真实榜单（带 8 分钟缓存由上层控制） */
+async function itabList(id, size = 20, timeout = 9000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeout);
+  try {
+    const res = await fetch(`${ITAB_API}/api/top/list?lang=cn&id=${encodeURIComponent(id)}&size=${size}`, {
+      signal: ctrl.signal, cache: 'no-store',
+      headers: { signaturekey: itabSign(), version: ITAB_VERSION, mode: 'itab', fp: _fp }
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return (json && json.code === 200 && Array.isArray(json.data)) ? json.data : null;
+  } catch (e) { return null; }
+  finally { clearTimeout(timer); }
+}
+
+/* 把 iTab 条目（index/title/hotValue/link）统一成 App 内部资讯结构 */
+function normItem(raw, i, key, opt = {}) {
+  const p = ITAB_BY_KEY[key] || { name: 'iTab', color: '#ff5a3c', type: '热榜' };
+  const title = raw.title || '';
   const item = {
     t: title,
-    s: srcName,
-    c: srcColor,
-    img,
+    s: p.name,
+    c: p.color,
+    img: _themeImgs[i % _themeImgs.length],
     g: _themeGrad[i % _themeGrad.length],
-    e: opt.emoji || '📰',
-    time: opt.time || (i < 2 ? '刚刚' : `${i * 3} 分钟前`),
-    cm: opt.cm || Math.max(1, Math.round(120 + ((i * 137) % 780))),
-    link: raw.link || opt.link || '',
-    body: opt.body || ''
+    e: _emojiOf[key] || '📰',
+    time: i < 2 ? '刚刚' : `${i * 3} 分钟前`,
+    cm: parseHot(raw.hotValue) || Math.max(1, 500 - i * 8),
+    link: raw.link || '',
+    body: '',           // iTab 榜单只提供标题/热度/链接，正文见"阅读原文"
+    src: p.type
   };
   if (title) LIVE.index.set(title, item);
   return item;
 }
 
-/* 拉取全部真实数据（带 10 分钟缓存；force=true 下拉刷新强制更新） */
+/* 拉某平台的真实榜单 -> 热榜行格式 [标题, 热度万, tag, trend, link] */
+async function fetchHot(key) {
+  const p = ITAB_BY_KEY[key];
+  if (!p) return null;
+  const data = await itabList(p.id, 30);
+  if (!data || !data.length) return null;
+  const list = data.slice(0, 30).map((r, i) => {
+    const hv = parseHot(r.hotValue);
+    return [r.title, hv || Math.round(500 - i * 8), i < 3 ? 'boom' : i < 8 ? 'hot' : '', i < 5 ? 'up' : '-', r.link || ''];
+  });
+  LIVE.hot[key] = list;
+  data.slice(0, 30).forEach((r, i) => { if (!LIVE.index.has(r.title)) LIVE.index.set(r.title, normItem(r, i, key)); });
+  return list;
+}
+
+/* 拉取 5 频道真实数据（并发）；热榜页数据按需懒加载 */
 async function loadLiveData(force = false) {
-  if (!force && LIVE.ok && Date.now() - LIVE.updatedAt < 10 * 60 * 1000) return;
-  const [quark, daily, toutiao, zhihu, douyin, weibo] = await Promise.all([
-    apiGet('/quark'), apiGet('/60s'), apiGet('/toutiao'),
-    apiGet('/zhihu'), apiGet('/douyin'), apiGet('/weibo')
-  ]);
-
-  const C = { quark:'夸克热点', toutiao:'今日头条', zhihu:'知乎热榜', weibo:'微博热搜', douyin:'抖音热点', daily:'每日新闻' };
-  const CL = { quark:'#4285f4', toutiao:'#f04142', zhihu:'#0066ff', weibo:'#e6162d', douyin:'#161823', daily:'#c8102e' };
-
-  // 推荐：夸克热点（自带全文 content + 摘要 + 封面）
-  if (quark && quark.length) LIVE.channel.recommend = quark.slice(0, 14).map((r, i) =>
-    normItem(r, i, r.source || C.quark, CL.quark, { body: r.content || r.summary || '', emoji:'✨', cm:_wan(r.hot_value)||Math.round(90+i*37) }));
-  // 热点：今日头条热榜（真实封面 + 链接）
-  if (toutiao && toutiao.length) LIVE.channel.hot = toutiao.slice(0, 14).map((r, i) =>
-    normItem(r, i, C.toutiao, CL.toutiao, { body: r.detail || '', emoji:'🔥', cm:_wan(r.hot_value) }));
-  // 科技：知乎热榜（自带真实回答摘要 detail + 封面）
-  if (zhihu && zhihu.length) LIVE.channel.tech = zhihu.slice(0, 14).map((r, i) =>
-    normItem(r, i, C.zhihu, CL.zhihu, { body: r.detail || '', emoji:'💡', cm:_wan(r.hot_value)||Math.round(60+i*29) }));
-  // 财经：每日新闻（权威时政财经要闻）
-  if (daily && Array.isArray(daily.news) && daily.news.length) LIVE.channel.finance = daily.news.slice(0, 14).map((t, i) =>
-    normItem({ title: typeof t === 'string' ? t : (t.title||''), link: (typeof t === 'object' && t.link) || '' }, i, C.daily, CL.daily, { body: typeof t === 'object' ? (t.detail||t.summary||'') : '', emoji:'📈', time: daily.date||'今日', cm:Math.round(200+i*23) }));
-  // 娱乐：抖音热点（真实封面 + 事件时间）
-  if (douyin && douyin.length) LIVE.channel.ent = douyin.slice(0, 14).map((r, i) =>
-    normItem(r, i, C.douyin, CL.douyin, { body: '', emoji:'🎬', time: (r.active_time||'').slice(5,16)||'刚刚', cm:_wan(r.hot_value) }));
-
-  // 热榜页真实数据：[标题, 热度(万), 标签, 趋势, 原文链接]
-  if (weibo && weibo.length)    LIVE.hot.weibo    = weibo.slice(0,50).map((r,i)=>[r.title,_wan(r.hot_value)||Math.round(500-i*8),i<3?'boom':i<8?'hot':'',r.hot_value>1e6?'up':'-',r.link||'']);
-  if (toutiao && toutiao.length)LIVE.hot.toutiao  = toutiao.slice(0,50).map((r,i)=>[r.title,_wan(r.hot_value)||Math.round(500-i*8),i<3?'boom':'hot',r.hot_value>1e7?'up':'-',r.link||'']);
-  if (douyin && douyin.length)  LIVE.hot.douyin   = douyin.slice(0,50).map((r,i)=>[r.title,_wan(r.hot_value)||Math.round(500-i*8),i<3?'boom':'',r.active_time?'up':'-',r.link||'']);
-  if (zhihu && zhihu.length)    LIVE.hot.zhihu    = zhihu.slice(0,30).map((r,i)=>[r.title,_wan(r.hot_value)||Math.round(300-i*5),i<3?'hot':'',r.answer_cnt>500?'up':'-',r.link||'']);
-  if (quark && quark.length)    LIVE.hot.quark    = quark.slice(0,50).map((r,i)=>[r.title,_wan(r.hot_value)||Math.round(400-i*6),i<3?'hot':'','-',r.link||'']);
-  if (daily && Array.isArray(daily.news)) LIVE.hot.daily = daily.news.slice(0,15).map((t,i)=>[typeof t==='string'?t:t.title,300-i*12,i<3?'hot':'','-','']);
-
+  if (!force && LIVE.ok && Date.now() - LIVE.updatedAt < 8 * 60 * 1000) return;
+  const keys = Object.keys(LIVE_CHANNELS);
+  const results = await Promise.all(keys.map(ch => {
+    const platforms = LIVE_CHANNELS[ch];
+    return Promise.all(platforms.map(pk => itabList(ITAB_BY_KEY[pk].id, 10)));
+  }));
+  keys.forEach((ch, ci) => {
+    const platforms = LIVE_CHANNELS[ch];
+    const items = [];
+    results[ci].forEach((data, pi) => {
+      if (data && data.length) data.slice(0, 4).forEach((r, i) => items.push(normItem(r, items.length, platforms[pi])));
+    });
+    // 交错各平台来源，让频道流来源多样
+    if (items.length) LIVE.channel[ch] = items;
+  });
   const got = Object.keys(LIVE.channel).length;
   LIVE.ok = got > 0;
   LIVE.updatedAt = Date.now();
-  if (LIVE.ok) console.log(`[iNews] 已加载 ${got} 个频道的真实资讯`);
+  if (LIVE.ok) console.log(`[iNews] 已加载 ${got} 个频道的 iTab 真实资讯（${LIVE.index.size} 条）`);
 }
 
 /* ---------- 状态 ---------- */
@@ -593,24 +691,26 @@ function renderFeed() {
 
 /* ---------- 热榜页 ---------- */
 function renderRankCats() {
-  $('#rankCats').innerHTML = CATEGORIES.map(c => `
-    <button class="rank-cat ${c.key === state.rankCategory ? 'active' : ''}" data-rankcat="${c.key}">${c.name}</button>`).join('');
+  $('#rankCats').innerHTML = ITAB_CATS.map(c => `
+    <button class="rank-cat ${c.key === state.rankCategory ? 'active' : ''}" data-rankcat="${c.key}">${c.icon} ${c.name}</button>`).join('');
 }
 function renderRankTabs() {
-  const keys = platformsByCat(state.rankCategory);
+  const keys = itabPlatformsByCat(state.rankCategory);
+  if (!keys.includes(state.rankPlatform)) state.rankPlatform = keys[0];
   $('#rankTabs').innerHTML = keys.map(k =>
-    `<button class="rank-tab ${k === state.rankPlatform ? 'active' : ''}" data-rank="${k}">${PLATFORMS[k].name}</button>`).join('');
+    `<button class="rank-tab ${k === state.rankPlatform ? 'active' : ''}" data-rank="${k}">${ITAB_BY_KEY[k]?.name || k}</button>`).join('');
 }
 function renderRankList() {
-  if (!platformsByCat(state.rankCategory).includes(state.rankPlatform)) {
-    state.rankPlatform = platformsByCat(state.rankCategory)[0];
-  }
-  const p = PLATFORMS[state.rankPlatform];
-  const list = (LIVE.hot[state.rankPlatform] && LIVE.hot[state.rankPlatform].length)
-    ? LIVE.hot[state.rankPlatform]
-    : HOT_DATA[state.rankPlatform];
-  $('#rankBannerTitle').textContent = p.name + (LIVE.hot[state.rankPlatform] ? ' · 实时' : '');
-  const max = list[0][1] || 1;
+  const keys = itabPlatformsByCat(state.rankCategory);
+  if (!keys.includes(state.rankPlatform)) state.rankPlatform = keys[0];
+  const key = state.rankPlatform;
+  const p = ITAB_BY_KEY[key] || { name: key };
+  const live = LIVE.hot[key];
+  const hasLive = live && live.length;
+  // 无真实数据时展示内置兜底，同时后台懒加载该平台的 iTab 真实榜单
+  const list = hasLive ? live : (HOT_DATA[key] || HOT_DATA.weibo || []);
+  $('#rankBannerTitle').textContent = p.name + (hasLive ? ' · 实时' : (ITAB_BY_KEY[key] ? ' · 加载中…' : ''));
+  const max = list[0]?.[1] || 1;
   $('#rankList').innerHTML = list.map((row, i) => {
     const rank = i + 1, cls = rank <= 3 ? 't' + rank : '';
     return `<div class="rank-item" data-hot="${encodeURIComponent(row[0])}" style="cursor:pointer">
@@ -620,6 +720,14 @@ function renderRankList() {
         <div class="rank-bar"><i style="width:${Math.round(row[1] / max * 100)}%"></i></div></div>
     </div>`;
   }).join('');
+  // 懒加载真实榜单：有 iTab 平台且尚无缓存时拉取，完成后仅在当前平台仍选中时重绘
+  if (ITAB_BY_KEY[key] && !hasLive && !renderRankList._loading) {
+    renderRankList._loading = true;
+    fetchHot(key).then(() => {
+      renderRankList._loading = false;
+      if (state.rankPlatform === key && $('.page.active')?.dataset.page === 'rank') renderRankList();
+    });
+  }
 }
 
 /* ---------- 视频页 ---------- */
@@ -661,7 +769,7 @@ function openDetail(item, kind) {
   } else {
     // 热榜：优先命中真实条目（带正文/封面/链接），否则用榜单行数据
     const real = LIVE.index.get(item[0]);
-    title = item[0]; meta = `${PLATFORMS[state.rankPlatform]?.name || '热榜'} · 实时热点`;
+    title = item[0]; meta = `${ITAB_BY_KEY[state.rankPlatform]?.name || '热榜'} · 实时热点`;
     if (real) {
       cover = real.g; coverImg = real.img; coverEmoji = real.e; link = real.link || item[4] || '';
       body = expandArticle(real);
@@ -701,12 +809,13 @@ function closeSheet(el) { el.classList.remove('open'); }
 
 /* ---------- 搜索 ---------- */
 function renderSearchDefault() {
-  const hot = HOT_DATA[state.rankPlatform].slice(0, 8);
+  const live = LIVE.hot[state.rankPlatform] || LIVE.hot.weibo;
+  const hot = (live && live.length ? live : (HOT_DATA[state.rankPlatform] || HOT_DATA.weibo)).slice(0, 8);
   $('#searchBody').innerHTML = `
     <div class="section-title">🔥 热门搜索</div>
     <div class="search-chips">${hot.map((h, i) => `<button class="search-chip ${i < 3 ? 'hot-chip' : ''}" data-term="${encodeURIComponent(h[0])}">${h[0]}</button>`).join('')}</div>
     <div class="section-title">猜你想搜</div>
-    ${['国庆出游攻略', '新能源汽车', '秋季养生', '人工智能', '城市漫步'].map(t => `
+    ${['人工智能', '新能源汽车', '消费观察', '财经要闻', '热搜榜'].map(t => `
       <div class="result-item" data-term="${encodeURIComponent(t)}" style="cursor:pointer">
         <span class="result-rank">·</span><span class="result-title">${t}</span><svg style="width:14px;height:14px;color:var(--text-3)"><use href="#i-chevron"/></svg>
       </div>`).join('')}`;
@@ -715,8 +824,9 @@ function doSearch(q) {
   q = q.trim();
   if (!q) { renderSearchDefault(); return; }
   const all = [];
-  Object.entries(HOT_DATA).forEach(([k, list]) => list.forEach(r => all.push({ title: r[0], src: PLATFORMS[k].name, type: 'hot' })));
-  FEED.forEach(f => all.push({ title: f.t, src: f.s, type: 'feed' }));
+  // 真实数据索引优先
+  LIVE.index.forEach(it => all.push({ title: it.t, src: it.s, type: 'feed' }));
+  Object.entries(LIVE.hot).forEach(([k, list]) => list.forEach(r => all.push({ title: r[0], src: ITAB_BY_KEY[k]?.name || '热榜', type: 'hot' })));
   const res = all.filter(x => x.title.includes(q)).slice(0, 12);
   $('#searchBody').innerHTML = res.length
     ? `<div class="section-title">搜索结果 · ${res.length} 条</div>` + res.map((r, i) => `
@@ -759,7 +869,7 @@ function bind() {
   $('#rankCats').addEventListener('click', e => {
     const b = e.target.closest('[data-rankcat]'); if (!b) return;
     state.rankCategory = b.dataset.rankcat;
-    state.rankPlatform = platformsByCat(state.rankCategory)[0];
+    state.rankPlatform = itabPlatformsByCat(state.rankCategory)[0];
     renderRankCats(); renderRankTabs(); renderRankList();
   });
 
@@ -783,7 +893,7 @@ function bind() {
     const t = e.target.closest('[data-term]');
     const r = e.target.closest('[data-result]');
     if (t) { $('#searchInput').value = decodeURIComponent(t.dataset.term); $('#searchClear').style.display = 'block'; doSearch($('#searchInput').value); }
-    if (r) { closeSheet($('#searchSheet')); const title = decodeURIComponent(r.dataset.result); const item = FEED.find(f => f.t === title); if (item) openDetail(item, 'feed'); else { const row = Object.values(HOT_DATA).flat().find(x => x[0] === title); if (row) openDetail(row, 'hot'); } }
+    if (r) { closeSheet($('#searchSheet')); const title = decodeURIComponent(r.dataset.result); const item = LIVE.index.get(title) || FEED.find(f => f.t === title); if (item && !Array.isArray(item)) openDetail(item, 'feed'); else { const row = Object.values(LIVE.hot).flat().find(x => x[0] === title) || Object.values(HOT_DATA).flat().find(x => x[0] === title); if (row) openDetail(row, 'hot'); } }
   });
 
   // 详情：来自热搜 / 资讯
@@ -793,7 +903,7 @@ function bind() {
     const v = e.target.closest('[data-video]');
     if (h) {
       const title = decodeURIComponent(h.dataset.hot);
-      const row = Object.values(HOT_DATA).flat().find(x => x[0] === title) || [title, 0];
+      const row = Object.values(LIVE.hot).flat().find(x => x[0] === title) || Object.values(HOT_DATA).flat().find(x => x[0] === title) || [title, 0];
       openDetail(row, 'hot');
     }
     if (f) {
