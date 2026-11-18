@@ -773,7 +773,7 @@ function renderFeed() {
           </div>
         </div>
         <div class="fc-img" style="background:${it.g}">
-          <img src="${it.img}" alt="" loading="lazy" onerror="this.style.display='none'" />
+          <img src="${it.img}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
           <span class="fc-emoji">${it.e}</span>
         </div>
       </div>
@@ -914,7 +914,7 @@ function openDetail(item, kind) {
     <h1 class="detail-title">${title}</h1>
     <div class="detail-meta"><span class="src-dot" style="background:${dotColor}">${dotChar}</span>${meta}${srcLine}</div>
     <div class="detail-cover" style="background:${cover}">
-      ${coverImg ? `<img src="${coverImg}" alt="" onerror="this.style.display='none'" />` : ''}
+      ${coverImg ? `<img src="${coverImg}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none'" />` : ''}
       <span class="dc-emoji">${coverEmoji}</span>
     </div>
     <div class="detail-body">${body}</div>

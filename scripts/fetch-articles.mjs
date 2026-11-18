@@ -112,7 +112,15 @@ function extractMeta($, html, url) {
     || $('meta[property="twitter:title"]').attr('content')
     || $('h1').first().text().replace(/\s+/g, ' ').trim() || '';
   let img = $('meta[property="og:image"]').attr('content') || $('meta[itemprop="image"]').attr('content') || '';
+  // 无 og:image 时取正文首图（中新网等）
+  if (!img) {
+    img = $('.left_zw img, #cont_1_1_2 img, .post_body img, .article-content img, article img').first().attr('src')
+      || $('.left_zw img, #cont_1_1_2 img, .post_body img').first().attr('data-src') || '';
+  }
   if (img && img.startsWith('//')) img = 'https:' + img;
+  else if (img && img.startsWith('/')) { try { img = new URL(url).origin + img; } catch {} }
+  // 过滤占位图/图标
+  if (img && /(logo|icon|avatar|blank|placeholder)/i.test(img)) img = '';
   let time = $('meta[property="article:published_time"]').attr('content')
     || $('meta[itemprop="datePublished"]').attr('content')
     || $('meta[name="publishdate"], meta[name="pubdate"], meta[name="date"]').attr('content') || '';
