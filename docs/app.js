@@ -521,10 +521,41 @@ const LIVE = {
   channel: {},      // key -> 资讯 item[]（真实）
   hot: {},          // platform key -> [title, heat万, tag, trend, link?][]
   index: new Map(), // title -> item，供详情/搜索命中真实条目
+  articles: null,   // link -> {title,source,body} 服务端抓取的真实正文
   ok: false,
   updatedAt: 0
 };
 if (typeof window !== 'undefined') window.LIVE = LIVE;
+
+/* 读取服务端（GitHub Actions）抓取生成的真实正文 JSON。
+   同源读取，无跨域问题；文件可能稍旧（定时生成），匹配不到时前端回退"阅读原文"。 */
+async function loadArticles() {
+  try {
+    const res = await fetch('articles.json', { cache: 'no-cache' });
+    if (!res.ok) return;
+    const json = await res.json();
+    LIVE.articles = json?.articles || null;
+    if (LIVE.articles) console.log(`[iNews] 已加载 ${Object.keys(LIVE.articles).length} 篇真实正文`);
+  } catch (e) { /* 无正文文件时保持 null，详情回退阅读原文 */ }
+}
+
+/* 按 link 取真实正文；同时尝试用 title 反查（榜单链接带跟踪参数时） */
+function bodyForLink(link, title) {
+  if (!LIVE.articles) return '';
+  if (link && LIVE.articles[link]) return LIVE.articles[link].body || '';
+  // 链接可能带 query，尝试规范化后匹配
+  if (link) {
+    try {
+      const u = new URL(link); const base = u.origin + u.pathname;
+      for (const [k, v] of Object.entries(LIVE.articles)) {
+        try { const ku = new URL(k); if (ku.origin + ku.pathname === base) return v.body || ''; } catch {}
+      }
+    } catch {}
+  }
+  // 标题兜底
+  if (title) { for (const v of Object.values(LIVE.articles)) if (v.title === title) return v.body || ''; }
+  return '';
+}
 const _themeImgs = [IMG.city, IMG.tech, IMG.space, IMG.coffee, IMG.car, IMG.book, IMG.food, IMG.film, IMG.road, IMG.money, IMG.nature, IMG.game];
 const _themeGrad = ['linear-gradient(135deg,#667eea,#764ba2)','linear-gradient(135deg,#4facfe,#00f2fe)','linear-gradient(135deg,#f6d365,#fda085)','linear-gradient(135deg,#0f2027,#2c5364)','linear-gradient(135deg,#43e97b,#38f9d7)','linear-gradient(135deg,#c471ed,#f64f59)'];
 const _emojiOf = { weibo:'🔥', zhihu:'💡', baidu:'🔍', toutiao:'📰', bilibili:'📺', ithome:'💻', kr36:'🚀', juejin:'⚒️', github:'⭐', xueqiu:'📈', douyin:'🎬', acfun:'🎭', doubanMovie:'🎞️', weread:'📚' };
@@ -746,38 +777,40 @@ function renderVideos() {
 }
 
 /* ---------- 详情 ---------- */
-/* 有真实正文就用真实正文；没有时用标题做简短说明 + 引导阅读原文，不再编造细节。 */
-function expandArticle(item) {
-  const raw = (item.body || '').trim();
-  // 真实正文（来自 API 的 content / detail / summary）
+/* 正文优先级：① 服务端抓取的真实原文（articles.json）② item 自带正文 ③ 引导阅读原文 */
+function expandArticle(item, link) {
+  let raw = bodyForLink(link, item.t || item[0]).trim();
+  if (!raw) raw = (item.body || '').trim();
   if (raw) {
     const paras = raw.split(/\n+/).map(s => s.trim()).filter(Boolean);
     return paras.map(p => `<p>${p}</p>`).join('');
   }
-  // 无真实正文：诚实说明，不编造。热榜话题可给出温度信息由 openDetail 处理。
   const s = item.s || '来源';
-  return `<p>本条资讯来自「${s}」。由于该平台仅提供标题与热度信息，暂无可展示的正文摘要。</p>` +
+  return `<p>本条来自「${s}」热榜。该话题多为聚合搜索页，暂无可直接展示的正文。</p>` +
          `<p>点击下方「阅读原文」可前往来源平台查看完整报道。iNews 聚合全网热点，帮你快速发现正在发生的事。</p>`;
 }
 
 function openDetail(item, kind) {
-  let title, meta, cover, coverImg, coverEmoji, body, link = '';
+  let title, meta, cover, coverImg, coverEmoji, body, link = '', hasArticle = false;
   if (kind === 'feed') {
     title = item.t; meta = `${item.s} · ${item.time}`; cover = item.g;
     coverImg = item.img; coverEmoji = item.e; link = item.link || '';
-    body = expandArticle(item);
+    hasArticle = !!bodyForLink(link, title);
+    body = expandArticle(item, link);
   } else {
-    // 热榜：优先命中真实条目（带正文/封面/链接），否则用榜单行数据
     const real = LIVE.index.get(item[0]);
     title = item[0]; meta = `${ITAB_BY_KEY[state.rankPlatform]?.name || '热榜'} · 实时热点`;
     if (real) {
       cover = real.g; coverImg = real.img; coverEmoji = real.e; link = real.link || item[4] || '';
-      body = expandArticle(real);
+      hasArticle = !!bodyForLink(link, title);
+      body = expandArticle(real, link);
     } else {
       cover = 'linear-gradient(135deg,#ff5a3c,#ff9f2e)';
       coverImg = ''; coverEmoji = '🔥'; link = item[4] || '';
-      body = `<p>“${item[0]}”当前热度 <b>${fmtHeat(item[1])}</b>，位列榜单前列。该话题正在快速升温，短时间内引发了大量网友的关注与讨论。</p>` +
-             `<p>热榜聚合全网多个平台的热门话题，帮你用最少的时间了解正在发生的事。点击下方「阅读原文」查看完整报道。</p>`;
+      hasArticle = !!bodyForLink(link, title);
+      body = hasArticle ? expandArticle({ t: title }, link)
+        : `<p>“${item[0]}”当前热度 <b>${fmtHeat(item[1])}</b>，位列榜单前列。该话题正在快速升温，短时间内引发了大量网友的关注与讨论。</p>` +
+          `<p>热榜聚合全网多个平台的热门话题，帮你用最少的时间了解正在发生的事。点击下方「阅读原文」查看完整报道。</p>`;
     }
   }
   const key = title;
@@ -785,9 +818,10 @@ function openDetail(item, kind) {
   const readBtn = link
     ? `<button class="d-read" data-read="${encodeURIComponent(link)}"><svg><use href="#i-chevron"/></svg><span>阅读原文</span></button>`
     : '';
+  const srcLine = hasArticle ? '· 全文' : '';
   $('#detailScroll').innerHTML = `
     <h1 class="detail-title">${title}</h1>
-    <div class="detail-meta"><span class="src-dot" style="background:#ff5a3c">热</span>${meta}</div>
+    <div class="detail-meta"><span class="src-dot" style="background:#ff5a3c">热</span>${meta}${srcLine}</div>
     <div class="detail-cover" style="background:${cover}">
       ${coverImg ? `<img src="${coverImg}" alt="" onerror="this.style.display='none'" />` : ''}
       <span class="dc-emoji">${coverEmoji}</span>
@@ -975,8 +1009,8 @@ function showInstall(force) {
   renderSearchDefault();
   bind();
 
-  // 后台拉取真实资讯，拿到后无感刷新当前视图
-  await loadLiveData(false);
+  // 后台拉取真实资讯 + 服务端抓取的真实正文，拿到后无感刷新当前视图
+  await Promise.all([loadLiveData(false), loadArticles()]);
   if (LIVE.ok) {
     renderFeed();
     renderRankTabs();

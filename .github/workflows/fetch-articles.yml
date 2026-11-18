@@ -1,0 +1,50 @@
+name: Fetch Article Bodies
+
+# 抓取 iTab 榜单文章的真实正文，生成 docs/articles.json 供前端同源读取。
+# 公开仓库的 GitHub Actions 免费；ubuntu runner 轻量快速，不占用 IPA 构建额度。
+# 前端读取静态 JSON，无跨域问题，用户拉的是真实原文。
+
+on:
+  schedule:
+    # 每 6 小时更新一次正文（UTC）：00:00 / 06:00 / 12:00 / 18:00
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: fetch-articles
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Fetch article bodies from iTab-linked pages
+        run: node scripts/fetch-articles.mjs
+
+      - name: Commit updated articles.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/articles.json
+          if git diff --cached --quiet; then
+            echo "正文无变化，跳过提交"
+          else
+            COUNT=$(node -e "const d=require('./docs/articles.json');console.log(d.count)")
+            git commit -m "chore: refresh article bodies ($COUNT articles)"
+            git push
+            echo "已提交并推送 $COUNT 篇正文"
+          fi
