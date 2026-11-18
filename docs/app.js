@@ -530,7 +530,7 @@ if (typeof window !== 'undefined') window.LIVE = LIVE;
 /* 读取服务端（GitHub Actions）从源站直接抓取的文章（标题+封面+时间+完整正文）。
    同源读取，无跨域问题。文章自带 channel 字段，直接构成首页 5 频道资讯流。 */
 const SRC_META = {
-  '澎湃新闻':  ['#d4442b', '📰'], '澎湃·文娱': ['#b23a6b', '🎬'],
+  '澎湃新闻':  ['#d4442b', '📰'], '澎湃·文娱': ['#b23a6b', '🎬'], '中新网': ['#1e5aa8', '🌐'],
   '第一财经':  ['#c8102e', '📈'], '华尔街见闻': ['#0b5d3b', '💰'],
   '爱范儿':    ['#1a6cd6', '📱'], '少数派':    ['#d4483a', '✏️'],
   '少数派·榜': ['#d4483a', '✏️'], 'IT之家':    ['#0a58c9', '💻'],
@@ -702,9 +702,15 @@ async function loadLiveData(force = false) {
     results[ci].forEach((data, pi) => {
       if (data && data.length) data.slice(0, 4).forEach((r, i) => items.push(normItem(r, items.length, platforms[pi])));
     });
-    // 源站全文文章优先（不用跳转原文），iTab 榜单流作为兜底
-    if (items.length || LIVE.articleChannel?.[ch]?.length) {
-      LIVE.channel[ch] = (LIVE.articleChannel?.[ch]?.length) ? LIVE.articleChannel[ch] : items;
+    // 源站全文文章优先（不用跳转原文）；文章不足 8 篇时用 iTab 榜单流补足
+    const arts = LIVE.articleChannel?.[ch] || [];
+    if (arts.length >= 8 || (!arts.length && !items.length)) {
+      if (arts.length) LIVE.channel[ch] = arts;
+    } else if (arts.length) {
+      const extra = items.filter(x => !arts.some(a => a.t === x.t)).map(x => ({ ...x, body: bodyForLink(x.link, x.t) || '' }));
+      LIVE.channel[ch] = arts.concat(extra);
+    } else {
+      LIVE.channel[ch] = items;
     }
   });
   const got = Object.keys(LIVE.channel).length;

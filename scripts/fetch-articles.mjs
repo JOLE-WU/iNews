@@ -28,6 +28,7 @@ const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/6
 /* ---------- 源站直抓配置：列表页 + 文章链接模式 + 频道归属 ---------- */
 const DIRECT_SOURCES = [
   { name: '澎湃新闻', channel: 'hot',      color: '#d4442b', list: ['https://www.thepaper.cn/channel_25950', 'https://www.thepaper.cn/'], pat: /newsDetail_forward_\d+/g },
+  { name: '中新网',   channel: 'hot',      color: '#1e5aa8', list: ['https://www.chinanews.com.cn/'],              pat: /\/[a-z]+\/\d{4}\/\d{2}-\d{2}\/\d+\.shtml/g },
   { name: '澎湃·文娱', channel: 'ent',      color: '#b23a6b', list: ['https://www.thepaper.cn/channel_25953'],      pat: /newsDetail_forward_\d+/g },
   { name: '第一财经', channel: 'finance',   color: '#c8102e', list: ['https://www.yicai.com/'],                    pat: /news\/\d+\.html/g },
   { name: '华尔街见闻', channel: 'finance',  color: '#0b5d3b', list: ['https://wallstreetcn.com/'],                 pat: /articles\/\d+/g },
@@ -90,6 +91,7 @@ function extractBody($, url) {
     else if (/yicai\.com/.test(url)) el = $('#to_content, .article-content, .content');
     else if (/wallstreetcn\.com/.test(url)) el = $('.article__content__, article, .content');
     else if (/thepaper\.cn/.test(url)) el = $('.index_centent_wrap, #article-content, .news_txt, .newsdetail-content');
+    else if (/chinanews\.com\.cn/.test(url)) el = $('.left_zw, #cont_1_1_2, .content');
     else if (/ifanr\.com/.test(url)) el = '.article-content, .entry-content, article';
     else if (/toutiao\.com/.test(url)) el = $('.article-content, article');
     else if (/qq\.com/.test(url)) el = $('.content-article, #ArticleContent, article');
