@@ -370,12 +370,18 @@ body[data-theme="dark"] .mi-toggle::after { transform: translateX(18px); }
 .detail-cover > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .detail-cover > img:not([style*="none"]) + .dc-emoji { display: none; }
 .detail-body p { font-size: 15px; line-height: 1.9; color: var(--text); margin-bottom: 15px; }
-.detail-actions { display: flex; justify-content: space-around; padding: 18px 0 6px; border-top: 1px solid var(--divider); margin-top: 12px; }
-.detail-actions button { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: var(--text-2); }
+.detail-actions { display: flex; justify-content: space-around; padding: 18px 0 6px; border-top: 1px solid var(--divider); margin-top: 12px; }.detail-actions button { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: var(--text-2); }
 .detail-actions svg { width: 23px; height: 23px; }
 .detail-actions .liked { color: var(--red) !important; }
 .detail-actions .d-read { color: var(--accent, #ff5a3c) !important; }
 .detail-actions .d-read svg { transform: rotate(-90deg); }
+
+/* 热榜话题的相关全文报道列表 */
+.rel-list { margin-top: 6px; border-top: 1px solid var(--divider); }
+.rel-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--divider); cursor: pointer; }
+.rel-item:active { opacity: .65; }
+.rel-t { font-size: 15px; line-height: 1.5; color: var(--text); }
+.rel-s { flex: none; font-size: 11px; color: var(--text-3); padding-top: 3px; }
 .live-badge { color: var(--red, #ff5a3c); font-weight: 600; }
 /* 真实正文较长时的首行缩进优化 & 链接可点击提示 */
 .detail-body { word-break: break-word; }

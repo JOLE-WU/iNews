@@ -527,22 +527,80 @@ const LIVE = {
 };
 if (typeof window !== 'undefined') window.LIVE = LIVE;
 
-/* 读取服务端（GitHub Actions）抓取生成的真实正文 JSON。
-   同源读取，无跨域问题；文件可能稍旧（定时生成），匹配不到时前端回退"阅读原文"。 */
+/* 读取服务端（GitHub Actions）从源站直接抓取的文章（标题+封面+时间+完整正文）。
+   同源读取，无跨域问题。文章自带 channel 字段，直接构成首页 5 频道资讯流。 */
+const SRC_META = {
+  '澎湃新闻':  ['#d4442b', '📰'], '澎湃·文娱': ['#b23a6b', '🎬'],
+  '第一财经':  ['#c8102e', '📈'], '华尔街见闻': ['#0b5d3b', '💰'],
+  '爱范儿':    ['#1a6cd6', '📱'], '少数派':    ['#d4483a', '✏️'],
+  '少数派·榜': ['#d4483a', '✏️'], 'IT之家':    ['#0a58c9', '💻'],
+  '36氪':     ['#2b7bd4', '🚀'], '虎嗅网':    ['#5a54c9', '🐅'],
+  '机器之心':  ['#1a1a2e', '🤖'], '量子位':    ['#0e7a5f', '⚛️'],
+  '掘金':     ['#0e7af0', '⚒️'], '开源中国':  ['#2c8a4a', '🐙']
+};
+const CHANNEL_ORDER = { recommend: 0, hot: 1, tech: 2, finance: 3, ent: 4 };
+
+/* "2026-11-18 11:09" / ISO -> 相对时间文案 */
+function fmtAgo(t) {
+  if (!t) return '';
+  const d = new Date(t.replace(' ', 'T'));
+  const ts = d.getTime();
+  if (isNaN(ts)) return '';
+  const diff = Date.now() - ts;
+  if (diff < 0 || diff < 60 * 60 * 1000) return Math.max(1, Math.round(diff / 60000)) + ' 分钟前';
+  if (diff < 24 * 60 * 60 * 1000) return Math.round(diff / 3600000) + ' 小时前';
+  if (diff < 48 * 60 * 60 * 1000) return '昨天';
+  return t.slice(5, 10);
+}
+
 async function loadArticles() {
   try {
     const res = await fetch('articles.json', { cache: 'no-cache' });
     if (!res.ok) return;
     const json = await res.json();
-    LIVE.articles = json?.articles || null;
-    if (LIVE.articles) console.log(`[iNews] 已加载 ${Object.keys(LIVE.articles).length} 篇真实正文`);
-  } catch (e) { /* 无正文文件时保持 null，详情回退阅读原文 */ }
+    const arts = json?.articles;
+    if (!arts) return;
+    LIVE.articles = arts;
+    LIVE.byTitle = json.byTitle || null;
+
+    // 按频道把源站文章直接组装成资讯流（按发布时间新→旧，同源交错）
+    const buckets = { recommend: [], hot: [], tech: [], finance: [], ent: [] };
+    const all = Object.entries(arts).map(([link, a]) => ({ link, ...a }));
+    all.sort((x, y) => (y.time || '').localeCompare(x.time || ''));
+    for (const a of all) {
+      const ch = a.channel;
+      if (!buckets[ch]) continue;
+      const [c, e] = SRC_META[a.source] || ['#667eea', '📰'];
+      const item = {
+        t: a.title, s: a.source, c, img: a.img || _themeImgs[buckets[ch].length % _themeImgs.length],
+        g: _themeGrad[buckets[ch].length % _themeGrad.length], e,
+        time: fmtAgo(a.time) || '今日', cm: Math.max(3, Math.round(90 + a.title.length * 7 + buckets[ch].length * 11)),
+        link: a.link, body: a.body || ''
+      };
+      buckets[ch].push(item);
+      LIVE.index.set(a.title, item);
+    }
+    // 推荐频道 = 各频道头部交错，保证来源多样
+    const heads = ['hot', 'tech', 'finance', 'ent'].map(k => buckets[k].slice(0, 6));
+    const maxLen = Math.max(...heads.map(h => h.length), 0);
+    const mixed = [];
+    for (let i = 0; i < maxLen; i++) heads.forEach(h => { if (h[i]) mixed.push(h[i]); });
+    buckets.recommend = mixed;
+    LIVE.articleChannel = buckets;
+    const total = Object.values(buckets).reduce((s, b) => s + b.length, 0);
+    console.log(`[iNews] 已加载 ${total} 篇源站全文文章（推荐 ${buckets.recommend.length}）`);
+  } catch (e) { /* 无文章文件时回退 iTab 榜单流 */ }
 }
 
-/* 按 link 取真实正文；同时尝试用 title 反查（榜单链接带跟踪参数时） */
+/* 按 link 取真实全文；榜单链接带跟踪参数或热榜标题时用标题反查 */
 function bodyForLink(link, title) {
   if (!LIVE.articles) return '';
   if (link && LIVE.articles[link]) return LIVE.articles[link].body || '';
+  // 标题反查（byTitle 索引，O(1)）
+  if (title && LIVE.byTitle && LIVE.byTitle[title]) {
+    const a = LIVE.articles[LIVE.byTitle[title]];
+    if (a) return a.body || '';
+  }
   // 链接可能带 query，尝试规范化后匹配
   if (link) {
     try {
@@ -644,8 +702,10 @@ async function loadLiveData(force = false) {
     results[ci].forEach((data, pi) => {
       if (data && data.length) data.slice(0, 4).forEach((r, i) => items.push(normItem(r, items.length, platforms[pi])));
     });
-    // 交错各平台来源，让频道流来源多样
-    if (items.length) LIVE.channel[ch] = items;
+    // 源站全文文章优先（不用跳转原文），iTab 榜单流作为兜底
+    if (items.length || LIVE.articleChannel?.[ch]?.length) {
+      LIVE.channel[ch] = (LIVE.articleChannel?.[ch]?.length) ? LIVE.articleChannel[ch] : items;
+    }
   });
   const got = Object.keys(LIVE.channel).length;
   LIVE.ok = got > 0;
@@ -703,7 +763,7 @@ function renderFeed() {
           <div class="fc-title">${it.t}</div>
           <div class="fc-meta">
             <span class="src-dot" style="background:${it.c}">${it.s[0]}</span>
-            <span>${it.s}</span><span class="sep"></span><span>${it.time}</span>${it.link ? '<span class="sep"></span><span class="live-badge">实时</span>' : ''}
+            <span>${it.s}</span><span class="sep"></span><span>${it.time}</span>${it.body ? '<span class="sep"></span><span class="live-badge">全文</span>' : (it.link ? '<span class="sep"></span><span class="live-badge">实时</span>' : '')}
           </div>
         </div>
         <div class="fc-img" style="background:${it.g}">
@@ -777,7 +837,7 @@ function renderVideos() {
 }
 
 /* ---------- 详情 ---------- */
-/* 正文优先级：① 服务端抓取的真实原文（articles.json）② item 自带正文 ③ 引导阅读原文 */
+/* 正文优先级：① 服务端从源站抓取的真实全文（articles.json）② item 自带正文 ③ 诚实说明待更新 */
 function expandArticle(item, link) {
   let raw = bodyForLink(link, item.t || item[0]).trim();
   if (!raw) raw = (item.body || '').trim();
@@ -786,42 +846,67 @@ function expandArticle(item, link) {
     return paras.map(p => `<p>${p}</p>`).join('');
   }
   const s = item.s || '来源';
-  return `<p>本条来自「${s}」热榜。该话题多为聚合搜索页，暂无可直接展示的正文。</p>` +
-         `<p>点击下方「阅读原文」可前往来源平台查看完整报道。iNews 聚合全网热点，帮你快速发现正在发生的事。</p>`;
+  return `<p>本条来自「${s}」。该条目为榜单话题，暂无可直接展示的正文，全文正在由 iNews 服务端抓取更新。</p>`;
+}
+
+/* 热榜话题找不到独立文章时，按关键词从已抓全文里找相关报道 */
+function relatedArticles(title, limit = 3) {
+  // 去掉热搜标签后缀（爆/热/新/沸）、括号内容和标点
+  const clean = title.replace(/[（(].*?[）)]/g, '')
+    .replace(/[^\u4e00-\u9fa5A-Za-z0-9]/g, '')
+    .replace(/[爆热新沸荐]$/, '');
+  if (clean.length < 2) return [];
+  const keys = clean.length <= 8 ? [clean, clean.slice(0, 4)] : [clean.slice(0, 8), clean.slice(0, 4)];
+  const cands = [], has = new Set();
+  LIVE.index.forEach(it => {
+    if (!it.body || it.t === title || has.has(it.t)) return;
+    const t = it.t.replace(/[^\u4e00-\u9fa5A-Za-z0-9]/g, '');
+    if (keys.some(k => k.length >= 2 && t.includes(k))) { cands.push(it); has.add(it.t); }
+  });
+  return cands.slice(0, limit);
+}
+
+/* 热榜话题兜底：说明 + 相关全文报道列表 */
+function hotFallback(title, heat) {
+  const rel = relatedArticles(title);
+  let html = `<p>“${title}”当前热度 <b>${fmtHeat(heat || 0)}</b>，位列${ITAB_BY_KEY[state.rankPlatform]?.name || '热榜'}榜单前列。</p>`;
+  html += rel.length
+    ? `<p style="color:var(--text-2);font-size:13px">以下是 iNews 已收录的相关报道全文：</p><div class="rel-list">` +
+      rel.map(r => `<div class="rel-item" data-open="${encodeURIComponent(r.t)}"><span class="rel-t">${r.t}</span><span class="rel-s">${r.s}</span></div>`).join('') + `</div>`
+    : `<p style="color:var(--text-2);font-size:13px">该话题为聚合热搜，暂无对应独立报道。</p>`;
+  return html;
 }
 
 function openDetail(item, kind) {
   let title, meta, cover, coverImg, coverEmoji, body, link = '', hasArticle = false;
+  let dotChar = '热', dotColor = '#ff5a3c';
   if (kind === 'feed') {
     title = item.t; meta = `${item.s} · ${item.time}`; cover = item.g;
     coverImg = item.img; coverEmoji = item.e; link = item.link || '';
-    hasArticle = !!bodyForLink(link, title);
+    dotChar = item.e || '新'; dotColor = item.c || '#ff5a3c';
+    hasArticle = !!(item.body && item.body.length > 60) || !!bodyForLink(link, title);
     body = expandArticle(item, link);
   } else {
     const real = LIVE.index.get(item[0]);
     title = item[0]; meta = `${ITAB_BY_KEY[state.rankPlatform]?.name || '热榜'} · 实时热点`;
     if (real) {
       cover = real.g; coverImg = real.img; coverEmoji = real.e; link = real.link || item[4] || '';
-      hasArticle = !!bodyForLink(link, title);
-      body = expandArticle(real, link);
+      dotChar = real.e || '热'; dotColor = real.c || '#ff5a3c';
+      hasArticle = !!(real.body && real.body.length > 60) || !!bodyForLink(link, title);
+      body = hasArticle ? expandArticle(real, link) : hotFallback(title, item[1]);
     } else {
       cover = 'linear-gradient(135deg,#ff5a3c,#ff9f2e)';
       coverImg = ''; coverEmoji = '🔥'; link = item[4] || '';
       hasArticle = !!bodyForLink(link, title);
-      body = hasArticle ? expandArticle({ t: title }, link)
-        : `<p>“${item[0]}”当前热度 <b>${fmtHeat(item[1])}</b>，位列榜单前列。该话题正在快速升温，短时间内引发了大量网友的关注与讨论。</p>` +
-          `<p>热榜聚合全网多个平台的热门话题，帮你用最少的时间了解正在发生的事。点击下方「阅读原文」查看完整报道。</p>`;
+      body = hasArticle ? expandArticle({ t: title }, link) : hotFallback(title, item[1]);
     }
   }
   const key = title;
   const isLiked = state.liked.has(key), isSaved = state.saved.has(key);
-  const readBtn = link
-    ? `<button class="d-read" data-read="${encodeURIComponent(link)}"><svg><use href="#i-chevron"/></svg><span>阅读原文</span></button>`
-    : '';
-  const srcLine = hasArticle ? '· 全文' : '';
+  const srcLine = hasArticle ? '<span class="sep"></span><span style="color:var(--red);font-weight:600">全文</span>' : '';
   $('#detailScroll').innerHTML = `
     <h1 class="detail-title">${title}</h1>
-    <div class="detail-meta"><span class="src-dot" style="background:#ff5a3c">热</span>${meta}${srcLine}</div>
+    <div class="detail-meta"><span class="src-dot" style="background:${dotColor}">${dotChar}</span>${meta}${srcLine}</div>
     <div class="detail-cover" style="background:${cover}">
       ${coverImg ? `<img src="${coverImg}" alt="" onerror="this.style.display='none'" />` : ''}
       <span class="dc-emoji">${coverEmoji}</span>
@@ -831,7 +916,6 @@ function openDetail(item, kind) {
       <button class="d-like ${isLiked ? 'liked' : ''}" data-dlike="${encodeURIComponent(key)}"><svg><use href="#i-heart"/></svg><span>${isLiked ? '已赞' : '点赞'}</span></button>
       <button class="d-save ${isSaved ? 'liked' : ''}" data-dsave="${encodeURIComponent(key)}"><svg><use href="#i-bookmark"/></svg><span>${isSaved ? '已收藏' : '收藏'}</span></button>
       <button class="d-share"><svg><use href="#i-share"/></svg><span>分享</span></button>
-      ${readBtn}
     </div>`;
   $('#detailScroll').scrollTop = 0;
   openSheet('#detailSheet');
@@ -952,16 +1036,11 @@ function bind() {
 
   // 详情内操作
   $('#detailScroll').addEventListener('click', e => {
-    const lk = e.target.closest('[data-dlike]'), sv = e.target.closest('[data-dsave]'), sh = e.target.closest('.d-share'), rd = e.target.closest('[data-read]');
+    const lk = e.target.closest('[data-dlike]'), sv = e.target.closest('[data-dsave]'), sh = e.target.closest('.d-share'), op = e.target.closest('[data-open]');
     if (lk) { const k = decodeURIComponent(lk.dataset.dlike); state.liked.has(k) ? state.liked.delete(k) : state.liked.add(k); const on = state.liked.has(k); lk.classList.toggle('liked', on); lk.querySelector('span').textContent = on ? '已赞' : '点赞'; toast(on ? '已点赞' : '已取消'); }
     if (sv) { const k = decodeURIComponent(sv.dataset.dsave); state.saved.has(k) ? state.saved.delete(k) : state.saved.add(k); const on = state.saved.has(k); sv.classList.toggle('liked', on); sv.querySelector('span').textContent = on ? '已收藏' : '收藏'; toast(on ? '已收藏' : '已取消收藏'); }
     if (sh) share();
-    if (rd) {
-      const url = decodeURIComponent(rd.dataset.read);
-      // 原生壳内优先用系统浏览器打开；否则新标签页打开
-      try { if (window.Capacitor?.Plugins?.Browser) window.Capacitor.Plugins.Browser.open({ url }); else window.open(url, '_blank', 'noopener'); }
-      catch (e) { window.open(url, '_blank', 'noopener'); }
-    }
+    if (op) { const t = decodeURIComponent(op.dataset.open); const it = LIVE.index.get(t); if (it) openDetail(it, 'feed'); }
   });
 
   // 主题（保留"我的"页入口）/ 分享 / 安装
@@ -1010,7 +1089,8 @@ function showInstall(force) {
   bind();
 
   // 后台拉取真实资讯 + 服务端抓取的真实正文，拿到后无感刷新当前视图
-  await Promise.all([loadLiveData(false), loadArticles()]);
+  await loadArticles();            // 先载入源站全文文章（构成频道流）
+  await loadLiveData(false);       // 再拉 iTab 榜单（热榜页 + 频道兜底）
   if (LIVE.ok) {
     renderFeed();
     renderRankTabs();

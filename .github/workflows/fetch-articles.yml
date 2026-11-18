@@ -1,6 +1,7 @@
 name: Fetch Article Bodies
 
-# 抓取 iTab 榜单文章的真实正文，生成 docs/articles.json 供前端同源读取。
+# 直接从源站（澎湃/第一财经/华尔街见闻/爱范儿/少数派/36氪等）抓取文章全文，
+# 生成 docs/articles.json 供前端同源读取；资讯流与详情全部展示源站原文，无需跳转。
 # 公开仓库的 GitHub Actions 免费；ubuntu runner 轻量快速，不占用 IPA 构建额度。
 # 前端读取静态 JSON，无跨域问题，用户拉的是真实原文。
 
@@ -32,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Fetch article bodies from iTab-linked pages
+      - name: Crawl source sites for full articles
         run: node scripts/fetch-articles.mjs
 
       - name: Commit updated articles.json
