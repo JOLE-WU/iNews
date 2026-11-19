@@ -29,10 +29,10 @@ const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/6
    life = 社会民生，hot = 时政热点，tech = 科技，finance = 财经，ent = 文娱 */
 const DIRECT_SOURCES = [
   /* 社会民生（每个源都验证过正文可提取） */
-  { name: '中新网·社会', channel: 'life',    color: '#1e5aa8', list: ['https://www.chinanews.com.cn/society/'],              pat: /\/[a-z]+\/\d{4}\/\d{2}-\d{2}\/\d+\.shtml/g },
-  { name: '人民网·社会', channel: 'life',    color: '#b02a1e', list: ['http://society.people.com.cn/'],                     pat: /\/n1\/\d{4}\/\d{4}\/c\d+-\d+\.html/g, titleFrom: 'title' },
-  { name: '新京报',     channel: 'life',    color: '#c8102e', list: ['https://www.bjnews.com.cn/news/1.html', 'https://www.bjnews.com.cn/'], pat: /\/detail\/\d{16}\.html/g },
-  { name: '红星新闻',   channel: 'life',    color: '#d0021b', list: ['https://www.cdsb.com/'],                             pat: /https:\/\/static\.cdsb\.com\/micropub\/Articles\/\d{6}\/[0-9a-f]{32}\.html/g },
+  { name: '中新网·社会', channel: 'life',    color: '#1e5aa8', list: ['https://www.chinanews.com.cn/society/'],              pat: /\/[a-z]+\/\d{4}\/\d{2}-\d{2}\/\d+\.shtml/g, per: 24 },
+  { name: '人民网·社会', channel: 'life',    color: '#b02a1e', list: ['http://society.people.com.cn/'],                     pat: /\/n1\/\d{4}\/\d{4}\/c\d+-\d+\.html/g, titleFrom: 'title', per: 24 },
+  { name: '新京报',     channel: 'life',    color: '#c8102e', list: ['https://www.bjnews.com.cn/news/1.html', 'https://www.bjnews.com.cn/'], pat: /\/detail\/\d{16}\.html/g, per: 24 },
+  { name: '红星新闻',   channel: 'life',    color: '#d0021b', list: ['https://www.cdsb.com/'],                             pat: /https:\/\/static\.cdsb\.com\/micropub\/Articles\/\d{6}\/[0-9a-f]{32}\.html/g, per: 24 },
 
   /* 时政热点 */
   { name: '南方都市报', channel: 'hot',     color: '#0b6ec7', list: ['https://www.oeeee.com/'],                            pat: /\/html\/\d{6}\/\d{2}\/\d+\.html/g },
@@ -109,18 +109,22 @@ async function getJSON(url, timeout = 12000) {
     return await r.json();
   } catch { return null; } finally { clearTimeout(t); }
 }
-async function fetchHtml(url, timeout = 15000) {
+async function fetchHtml(url, timeout = 15000, retry = 1) {
   const c = new AbortController(); const t = setTimeout(() => c.abort(), timeout);
   try {
     const r = await fetch(url, { signal: c.signal, headers: { 'User-Agent': UA, 'Accept-Language': 'zh-CN,zh;q=0.9' } });
-    if (!r.ok) return null;
+    if (!r.ok) throw new Error('HTTP ' + r.status);
     let buf = Buffer.from(await r.arrayBuffer());
     const head = buf.subarray(0, 3000).toString('latin1');
     if (/charset=["']?(gb2312|gbk|gb18030)/i.test(head)) {
       try { buf = Buffer.from(new TextDecoder('gb18030').decode(buf), 'utf8'); } catch {}
     }
     return buf.toString('utf8');
-  } catch { return null; } finally { clearTimeout(t); }
+  } catch (e) {
+    clearTimeout(t);
+    if (retry > 0) { await new Promise(r => setTimeout(r, 900)); return fetchHtml(url, timeout, retry - 1); }
+    return null;
+  } finally { clearTimeout(t); }
 }
 
 /* 依据域名选正文容器，再退回通用 <p> 拼接 */
@@ -245,7 +249,7 @@ async function main() {
         if (!/^https?:/.test(link)) link = origin + (link.startsWith('/') ? '' : '/') + link;
         found.add(link);
       }
-      links = [...found].slice(0, PER_SOURCE);
+      links = [...found].slice(0, s.per || PER_SOURCE);
       console.log(`  ${s.name}: ${links.length} 篇文章链接（${listUrl}）`);
       if (links.length >= 6) break;
     }
