@@ -259,6 +259,7 @@ const QUOTES = [
 const CHANNELS = [
   { key: 'recommend', name: '推荐' },
   { key: 'hot',       name: '热点' },
+  { key: 'life',      name: '民生' },
   { key: 'tech',      name: '科技' },
   { key: 'finance',   name: '财经' },
   { key: 'ent',       name: '娱乐' }
@@ -310,6 +311,7 @@ async function applyRemoteConfig() {
 const CHANNEL_SOURCES = {
   recommend: ['weibo', 'zhihu', 'toutiao', 'thepaper', 'baidu', 'douyin'],
   hot:       ['weibo', 'baidu', 'toutiao', 'zhihu', 'tieba', 'qqnews', 'netease', 'thepaper', 'sina', 'hupu'],
+  life:      ['toutiao', 'baidu', 'weibo', 'thepaper', 'qqnews', 'tieba'],
   tech:      ['ithome', 'kr36', 'sspai', 'juejin', 'huxiu', 'ifanr', 'csdn', 'github', 'hellogithub', 'v2ex'],
   finance:   ['eastmoney', 'xueqiu', 'cls', 'smzdm', 'jd', 'taobao'],
   ent:       ['bilibili', 'douyin', 'acfun', 'doubanMovie', 'maoyan', 'weread', 'jianshu', 'miyoushe', 'genshin', 'lol']
@@ -332,6 +334,14 @@ const CHANNEL_NEWS = {
     ['一项民生新规下月起施行，事关每个人', '📋', 'linear-gradient(135deg,#a29bfe,#6c5ce7)', '多项与日常生活密切相关的新规将于下月起施行，涵盖就业、医疗、消费等多个领域。\n\n读懂这些变化，能帮你更好地维护自身权益。'],
     ['网友热议：年轻人消费观正在发生这些变化', '💬', 'linear-gradient(135deg,#fd79a8,#e84393)', '从追逐品牌到看重性价比，从冲动消费到理性规划，年轻人的消费观正在悄然转变。\n\n评论区里，不少人说"花钱更清醒了"，也有人愿意为真正喜欢的东西买单。'],
     ['这份秋季养生指南请收好：五件事要注意', '🍂', 'linear-gradient(135deg,#a8e063,#56ab2f)', '季节交替之际，人体抵抗力容易波动。医生建议保证充足睡眠、及时增减衣物。\n\n饮食上可适当增加温润食物，适度户外运动有助提升心肺功能。']
+  ],
+  life: [
+    ['供暖季提前开启，多地公布报修与投诉渠道', '🔥', 'linear-gradient(135deg,#ff9966,#ff5e62)', '随着气温持续走低，北方多地提前启动集中供暖。供热部门公布了辖区报修电话与投诉渠道，居民遇到室温不达标可第一时间反馈。\n\n工作人员提醒，供暖初期管网需要调试，前两三天温度波动属正常现象，不要大量放水，以免影响整栋楼循环。'],
+    ['社区食堂开到家门口，一顿饭只要十几块', '🍚', 'linear-gradient(135deg,#f6d365,#fda085)', '针对老年人"做饭难、吃饭难"，越来越多社区办起了便民食堂。两荤一素、米饭管够，60 岁以上老人还能享受额外优惠。\n\n有居民说，来这里不光是为了吃饭，"一个人在家冷清，在这儿能跟老街坊说说话"。'],
+    ['老旧小区加装电梯，难题正在被一个个解开', '🛗', 'linear-gradient(135deg,#84fab0,#8fd3f4)', '加装电梯是老旧小区改造中最难啃的骨头：低层住户有顾虑、费用分摊难统一、施工空间受限。\n\n多地尝试"一楼一策"，通过财政补贴、公积金提取、协调议事等方式推进。有小区居民说，老人下楼晒太阳不再是奢望。'],
+    ['医保异地结算再扩围，看病报销少跑腿', '🏥', 'linear-gradient(135deg,#a1c4fd,#c2e9fb)', '跨省异地就医直接结算范围继续扩大，门诊慢特病病种也在增加。参保人备案后，在就医地定点医院可直接刷卡结算。\n\n医保部门提示，出行前可通过官方渠道线上备案，避免垫资和往返报销的麻烦。'],
+    ['开学季校门口拥堵，多地推"错峰放学+临时停车"', '🚸', 'linear-gradient(135deg,#fbc2eb,#a6c1ee)', '上下学时段校园周边拥堵，是不少城市的通病。近期多地交警与学校联动，推行分年级错峰放学、设置临时停车区、加派护学岗。\n\n家长反馈，接送时间缩短了，孩子过马路也更安全。'],
+    ['菜市场改造后，年轻人也愿意来买菜了', '🥬', 'linear-gradient(135deg,#96e6a1,#d4fc79)', '地面干净了、摊位规整了、可以扫码支付了——改造后的菜市场正在改变"脏乱差"的旧印象。\n\n摊主说，环境好了，来买菜的年轻人明显多了，"有的人下班顺路带两个菜，比点外卖踏实"。']
   ],
   tech: [
     ['新一代开源模型发布，性能跑分刷新纪录', '💻', 'linear-gradient(135deg,#4facfe,#00f2fe)', '开源社区迎来重磅更新，新一代模型在多项基准测试中刷新纪录，且完全开放权重。\n\n开发者 Community 反应热烈，已有多个下游应用完成适配。'],
@@ -389,6 +399,7 @@ const IMG = {
 const CHANNEL_IMGS = {
   recommend: [IMG.city, IMG.tech, IMG.space, IMG.coffee, IMG.car, IMG.book],
   hot:       [IMG.road, IMG.money, IMG.snow, IMG.meeting, IMG.team, IMG.nature],
+  life:      [IMG.city2, IMG.food, IMG.road, IMG.city, IMG.nature, IMG.team],
   tech:      [IMG.laptop, IMG.desk, IMG.tech, IMG.meeting, IMG.team, IMG.laptop],
   finance:   [IMG.cash, IMG.money, IMG.shopping, IMG.desk, IMG.shopping, IMG.money],
   ent:       [IMG.film, IMG.film, IMG.food, IMG.book, IMG.book, IMG.game]
@@ -508,14 +519,8 @@ const ITAB_CAT_KEYS = {
 };
 function itabPlatformsByCat(cat) { return cat === 'all' ? Object.keys(ITAB_BY_KEY) : (ITAB_CAT_KEYS[cat] || []); }
 
-/* 5 大频道 -> iTab 真实平台 */
-const LIVE_CHANNELS = {
-  recommend: ['weibo','zhihu','baidu','toutiao','bilibili'],  // 推荐：综合热门
-  hot:       ['toutiao','baidu','weibo','qqnews','sina'],      // 热点：新闻热点
-  tech:      ['ithome','kr36','juejin','github','qbitai'],     // 科技：IT/AI/开源
-  finance:   ['xueqiu','yicai','wallstreetcn','sina'],         // 财经：专业财经
-  ent:       ['douyin','bilibili','acfun','doubanMovie','weread'] // 娱乐：视频/影视/阅读
-};
+/* 频道流已改为 100% 源站全文（articles.json），不再用榜单条目标题拼流。
+   榜单（iTab）只服务「热榜」页。 */
 
 const LIVE = {
   channel: {},      // key -> 资讯 item[]（真实）
@@ -531,14 +536,16 @@ if (typeof window !== 'undefined') window.LIVE = LIVE;
    同源读取，无跨域问题。文章自带 channel 字段，直接构成首页 5 频道资讯流。 */
 const SRC_META = {
   '澎湃新闻':  ['#d4442b', '📰'], '澎湃·文娱': ['#b23a6b', '🎬'], '中新网': ['#1e5aa8', '🌐'],
-  '第一财经':  ['#c8102e', '📈'], '华尔街见闻': ['#0b5d3b', '💰'],
+  '第一财经':  ['#c8102e', '📈'], '华尔街见闻': ['#0b5d3b', '💰'], '界面新闻': ['#1b4f8f', '🧾'],
+  '中新网·社会': ['#1e5aa8', '🌐'], '人民网·社会': ['#b02a1e', '🏘️'], '新京报': ['#c8102e', '📮'],
+  '红星新闻':  ['#d0021b', '⭐'], '南方都市报': ['#0b6ec7', '🏙️'], '中国新闻周刊': ['#1c4e8a', '📖'],
   '爱范儿':    ['#1a6cd6', '📱'], '少数派':    ['#d4483a', '✏️'],
   '少数派·榜': ['#d4483a', '✏️'], 'IT之家':    ['#0a58c9', '💻'],
   '36氪':     ['#2b7bd4', '🚀'], '虎嗅网':    ['#5a54c9', '🐅'],
   '机器之心':  ['#1a1a2e', '🤖'], '量子位':    ['#0e7a5f', '⚛️'],
   '掘金':     ['#0e7af0', '⚒️'], '开源中国':  ['#2c8a4a', '🐙']
 };
-const CHANNEL_ORDER = { recommend: 0, hot: 1, tech: 2, finance: 3, ent: 4 };
+const CHANNEL_ORDER = { recommend: 0, hot: 1, life: 2, tech: 3, finance: 4, ent: 5 };
 
 /* "2026-11-18 11:09" / ISO -> 相对时间文案 */
 function fmtAgo(t) {
@@ -553,9 +560,9 @@ function fmtAgo(t) {
   return t.slice(5, 10);
 }
 
-async function loadArticles() {
+async function loadArticles(force = false) {
   try {
-    const res = await fetch('articles.json', { cache: 'no-cache' });
+    const res = await fetch(force ? `articles.json?t=${Date.now()}` : 'articles.json', { cache: 'no-cache' });
     if (!res.ok) return;
     const json = await res.json();
     const arts = json?.articles;
@@ -564,15 +571,17 @@ async function loadArticles() {
     LIVE.byTitle = json.byTitle || null;
 
     // 按频道把源站文章直接组装成资讯流（按发布时间新→旧，同源交错）
-    const buckets = { recommend: [], hot: [], tech: [], finance: [], ent: [] };
+    const buckets = { recommend: [], hot: [], life: [], tech: [], finance: [], ent: [] };
     const all = Object.entries(arts).map(([link, a]) => ({ link, ...a }));
     all.sort((x, y) => (y.time || '').localeCompare(x.time || ''));
     for (const a of all) {
       const ch = a.channel;
       if (!buckets[ch]) continue;
+      // 只要真全文：正文太短的"标题党"条目一律不进流
+      if (!a.body || a.body.length < 120) continue;
       const [c, e] = SRC_META[a.source] || ['#667eea', '📰'];
       const item = {
-        t: a.title, s: a.source, c, img: a.img || _themeImgs[buckets[ch].length % _themeImgs.length],
+        t: a.title, s: a.source, c, img: a.img || '',
         g: _themeGrad[buckets[ch].length % _themeGrad.length], e,
         time: fmtAgo(a.time) || '今日', cm: Math.max(3, Math.round(90 + a.title.length * 7 + buckets[ch].length * 11)),
         link: a.link, body: a.body || ''
@@ -581,7 +590,7 @@ async function loadArticles() {
       LIVE.index.set(a.title, item);
     }
     // 推荐频道 = 各频道头部交错，保证来源多样
-    const heads = ['hot', 'tech', 'finance', 'ent'].map(k => buckets[k].slice(0, 6));
+    const heads = ['hot', 'life', 'tech', 'finance', 'ent'].map(k => buckets[k].slice(0, 6));
     const maxLen = Math.max(...heads.map(h => h.length), 0);
     const mixed = [];
     for (let i = 0; i < maxLen; i++) heads.forEach(h => { if (h[i]) mixed.push(h[i]); });
@@ -589,7 +598,7 @@ async function loadArticles() {
     LIVE.articleChannel = buckets;
     const total = Object.values(buckets).reduce((s, b) => s + b.length, 0);
     console.log(`[iNews] 已加载 ${total} 篇源站全文文章（推荐 ${buckets.recommend.length}）`);
-  } catch (e) { /* 无文章文件时回退 iTab 榜单流 */ }
+  } catch (e) { /* 无文章文件时回退内置演示数据 */ }
 }
 
 /* 按 link 取真实全文；榜单链接带跟踪参数或热榜标题时用标题反查 */
@@ -688,35 +697,22 @@ async function fetchHot(key) {
   return list;
 }
 
-/* 拉取 5 频道真实数据（并发）；热榜页数据按需懒加载 */
+/* 组装 6 频道资讯流。
+   原则：频道流里只允许出现"能读到全文"的条目（正文 ≥120 字）。
+   只有标题的榜单条目（微博热搜、抖音热榜等）不进资讯流，只保留在「热榜」页做榜单展示。 */
 async function loadLiveData(force = false) {
   if (!force && LIVE.ok && Date.now() - LIVE.updatedAt < 8 * 60 * 1000) return;
-  const keys = Object.keys(LIVE_CHANNELS);
-  const results = await Promise.all(keys.map(ch => {
-    const platforms = LIVE_CHANNELS[ch];
-    return Promise.all(platforms.map(pk => itabList(ITAB_BY_KEY[pk].id, 10)));
-  }));
-  keys.forEach((ch, ci) => {
-    const platforms = LIVE_CHANNELS[ch];
-    const items = [];
-    results[ci].forEach((data, pi) => {
-      if (data && data.length) data.slice(0, 4).forEach((r, i) => items.push(normItem(r, items.length, platforms[pi])));
-    });
-    // 源站全文文章优先（不用跳转原文）；文章不足 8 篇时用 iTab 榜单流补足
-    const arts = LIVE.articleChannel?.[ch] || [];
-    if (arts.length >= 8 || (!arts.length && !items.length)) {
-      if (arts.length) LIVE.channel[ch] = arts;
-    } else if (arts.length) {
-      const extra = items.filter(x => !arts.some(a => a.t === x.t)).map(x => ({ ...x, body: bodyForLink(x.link, x.t) || '' }));
-      LIVE.channel[ch] = arts.concat(extra);
-    } else {
-      LIVE.channel[ch] = items;
-    }
-  });
-  const got = Object.keys(LIVE.channel).length;
-  LIVE.ok = got > 0;
+  if (force) await loadArticles(true);            // 下拉刷新：重新拉取服务端最新文章
+  const buckets = LIVE.articleChannel || {};
+  let total = 0;
+  for (const ch of Object.keys(buckets)) {
+    const arts = (buckets[ch] || []).filter(a => a.body && a.body.length >= 120);
+    LIVE.channel[ch] = arts;
+    total += arts.length;
+  }
+  LIVE.ok = total > 0;
   LIVE.updatedAt = Date.now();
-  if (LIVE.ok) console.log(`[iNews] 已加载 ${got} 个频道的 iTab 真实资讯（${LIVE.index.size} 条）`);
+  if (LIVE.ok) console.log(`[iNews] 6 频道共 ${total} 条全文资讯`);
 }
 
 /* ---------- 状态 ---------- */
@@ -755,27 +751,35 @@ function renderChannels() {
 
 /* ---------- 资讯流 ---------- */
 function renderFeed() {
-  // 优先真实数据，失败回退内置演示数据
-  const pool = (LIVE.channel[state.channel] && LIVE.channel[state.channel].length)
-    ? LIVE.channel[state.channel]
-    : (CHANNEL_FEED[state.channel] || CHANNEL_FEED.recommend);
+  // 只用"有全文"的真实条目；articles.json 完全加载失败时才回退内置演示数据
+  const live = LIVE.channel[state.channel] || [];
+  const hasLiveData = !!(LIVE.articleChannel && Object.values(LIVE.articleChannel).some(b => b.length));
+  const pool = hasLiveData ? live : (CHANNEL_FEED[state.channel] || CHANNEL_FEED.recommend || []);
+  if (!pool.length) {
+    $('#feed').innerHTML = `<div class="feed-empty">
+      <div class="fe-emoji">📭</div>
+      <div class="fe-title">该频道暂无更新</div>
+      <div class="fe-sub">内容由服务端定时从源站抓取，下拉可立即刷新</div>
+    </div>`;
+    return;
+  }
   const n = pool.length;
   const items = Array.from({ length: n }, (_, i) => pool[(state.feedOffset + i) % n]);
   $('#feed').innerHTML = items.map((it, i) => {
-    const large = i === 0;
+    const large = i === 0 && !!it.img;
     return `<article class="feed-card ${large ? 'large' : ''}" data-feed="${encodeURIComponent(it.t)}">
       <div class="fc-main">
         <div class="fc-text">
           <div class="fc-title">${it.t}</div>
           <div class="fc-meta">
             <span class="src-dot" style="background:${it.c}">${it.s[0]}</span>
-            <span>${it.s}</span><span class="sep"></span><span>${it.time}</span>${it.body ? '<span class="sep"></span><span class="live-badge">全文</span>' : (it.link ? '<span class="sep"></span><span class="live-badge">实时</span>' : '')}
+            <span>${it.s}</span><span class="sep"></span><span>${it.time}</span>
           </div>
         </div>
-        <div class="fc-img" style="background:${it.g}">
-          <img src="${it.img}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
+        ${it.img ? `<div class="fc-img" style="background:${it.g}">
+          <img src="${it.img}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.style.display='none'" />
           <span class="fc-emoji">${it.e}</span>
-        </div>
+        </div>` : ''}
       </div>
       <div class="fc-actions">
         <span class="act-like" data-like="${encodeURIComponent(it.t)}"><svg><use href="#i-heart"/></svg><b>${it.cm}</b></span>
@@ -890,7 +894,7 @@ function openDetail(item, kind) {
     title = item.t; meta = `${item.s} · ${item.time}`; cover = item.g;
     coverImg = item.img; coverEmoji = item.e; link = item.link || '';
     dotChar = item.e || '新'; dotColor = item.c || '#ff5a3c';
-    hasArticle = !!(item.body && item.body.length > 60) || !!bodyForLink(link, title);
+    hasArticle = !!(item.body && item.body.length >= 120) || !!bodyForLink(link, title);
     body = expandArticle(item, link);
   } else {
     const real = LIVE.index.get(item[0]);
@@ -898,7 +902,7 @@ function openDetail(item, kind) {
     if (real) {
       cover = real.g; coverImg = real.img; coverEmoji = real.e; link = real.link || item[4] || '';
       dotChar = real.e || '热'; dotColor = real.c || '#ff5a3c';
-      hasArticle = !!(real.body && real.body.length > 60) || !!bodyForLink(link, title);
+      hasArticle = !!(real.body && real.body.length >= 120) || !!bodyForLink(link, title);
       body = hasArticle ? expandArticle(real, link) : hotFallback(title, item[1]);
     } else {
       cover = 'linear-gradient(135deg,#ff5a3c,#ff9f2e)';
@@ -913,10 +917,10 @@ function openDetail(item, kind) {
   $('#detailScroll').innerHTML = `
     <h1 class="detail-title">${title}</h1>
     <div class="detail-meta"><span class="src-dot" style="background:${dotColor}">${dotChar}</span>${meta}${srcLine}</div>
-    <div class="detail-cover" style="background:${cover}">
-      ${coverImg ? `<img src="${coverImg}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none'" />` : ''}
+    ${coverImg ? `<div class="detail-cover" style="background:${cover}">
+      <img src="${coverImg}" alt="" referrerpolicy="no-referrer" onerror="this.parentNode.style.display='none'" />
       <span class="dc-emoji">${coverEmoji}</span>
-    </div>
+    </div>` : ''}
     <div class="detail-body">${body}</div>
     <div class="detail-actions">
       <button class="d-like ${isLiked ? 'liked' : ''}" data-dlike="${encodeURIComponent(key)}"><svg><use href="#i-heart"/></svg><span>${isLiked ? '已赞' : '点赞'}</span></button>

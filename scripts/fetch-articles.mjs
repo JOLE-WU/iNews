@@ -25,15 +25,33 @@ const SECRET = 'itab1314';
 const FP = 'inews-article-fetch';
 const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1';
 
-/* ---------- 源站直抓配置：列表页 + 文章链接模式 + 频道归属 ---------- */
+/* ---------- 源站直抓配置：列表页 + 文章链接模式 + 频道归属 ----------
+   life = 社会民生，hot = 时政热点，tech = 科技，finance = 财经，ent = 文娱 */
 const DIRECT_SOURCES = [
-  { name: '澎湃新闻', channel: 'hot',      color: '#d4442b', list: ['https://www.thepaper.cn/channel_25950', 'https://www.thepaper.cn/'], pat: /newsDetail_forward_\d+/g },
-  { name: '中新网',   channel: 'hot',      color: '#1e5aa8', list: ['https://www.chinanews.com.cn/'],              pat: /\/[a-z]+\/\d{4}\/\d{2}-\d{2}\/\d+\.shtml/g },
-  { name: '澎湃·文娱', channel: 'ent',      color: '#b23a6b', list: ['https://www.thepaper.cn/channel_25953'],      pat: /newsDetail_forward_\d+/g },
-  { name: '第一财经', channel: 'finance',   color: '#c8102e', list: ['https://www.yicai.com/'],                    pat: /news\/\d+\.html/g },
-  { name: '华尔街见闻', channel: 'finance',  color: '#0b5d3b', list: ['https://wallstreetcn.com/'],                 pat: /articles\/\d+/g },
-  { name: '爱范儿',   channel: 'tech',      color: '#1a6cd6', list: ['https://www.ifanr.com/'],                    pat: /https:\/\/www\.ifanr\.com\/\d{6,}/g },
-  { name: '少数派',   channel: 'tech',      color: '#d4483a', list: ['https://sspai.com/'],                        pat: /\/post\/\d+/g }
+  /* 社会民生（每个源都验证过正文可提取） */
+  { name: '中新网·社会', channel: 'life',    color: '#1e5aa8', list: ['https://www.chinanews.com.cn/society/'],              pat: /\/[a-z]+\/\d{4}\/\d{2}-\d{2}\/\d+\.shtml/g },
+  { name: '人民网·社会', channel: 'life',    color: '#b02a1e', list: ['http://society.people.com.cn/'],                     pat: /\/n1\/\d{4}\/\d{4}\/c\d+-\d+\.html/g, titleFrom: 'title' },
+  { name: '新京报',     channel: 'life',    color: '#c8102e', list: ['https://www.bjnews.com.cn/news/1.html', 'https://www.bjnews.com.cn/'], pat: /\/detail\/\d{16}\.html/g },
+  { name: '红星新闻',   channel: 'life',    color: '#d0021b', list: ['https://www.cdsb.com/'],                             pat: /https:\/\/static\.cdsb\.com\/micropub\/Articles\/\d{6}\/[0-9a-f]{32}\.html/g },
+
+  /* 时政热点 */
+  { name: '南方都市报', channel: 'hot',     color: '#0b6ec7', list: ['https://www.oeeee.com/'],                            pat: /\/html\/\d{6}\/\d{2}\/\d+\.html/g },
+  { name: '澎湃新闻',   channel: 'hot',     color: '#d4442b', list: ['https://www.thepaper.cn/channel_25950', 'https://www.thepaper.cn/'], pat: /newsDetail_forward_\d+/g },
+  { name: '中新网',     channel: 'hot',     color: '#1e5aa8', list: ['https://www.chinanews.com.cn/'],                     pat: /\/[a-z]+\/\d{4}\/\d{2}-\d{2}\/\d+\.shtml/g },
+  { name: '中国新闻周刊', channel: 'hot',   color: '#1c4e8a', list: ['https://www.inewsweek.cn/'],                          pat: /\/[a-z]+\/\d{4}-\d{2}-\d{2}\/\d+\.shtml/g },
+
+  /* 文娱 */
+  { name: '澎湃·文娱',  channel: 'ent',     color: '#b23a6b', list: ['https://www.thepaper.cn/channel_25953'],             pat: /newsDetail_forward_\d+/g },
+  { name: '新京报·娱乐', channel: 'ent',    color: '#c8102e', list: ['https://www.bjnews.com.cn/ent/1.html'],               pat: /\/detail\/\d{16}\.html/g },
+
+  /* 财经 */
+  { name: '第一财经',   channel: 'finance', color: '#c8102e', list: ['https://www.yicai.com/'],                            pat: /news\/\d+\.html/g },
+  { name: '华尔街见闻', channel: 'finance', color: '#0b5d3b', list: ['https://wallstreetcn.com/'],                         pat: /articles\/\d+/g },
+  { name: '界面新闻',   channel: 'finance', color: '#1b4f8f', list: ['https://www.jiemian.com/lists/2.html'],              pat: /\/article\/\d+\.html/g },
+
+  /* 科技 */
+  { name: '爱范儿',     channel: 'tech',    color: '#1a6cd6', list: ['https://www.ifanr.com/'],                            pat: /https:\/\/www\.ifanr\.com\/\d{6,}/g },
+  { name: '少数派',     channel: 'tech',    color: '#d4483a', list: ['https://sspai.com/'],                                pat: /\/post\/\d+/g }
 ];
 
 /* ---------- iTab 补充来源：列表页 JS 渲染抓不到，用 iTab 榜单拿文章链接 ---------- */
@@ -44,14 +62,41 @@ const ITAB_SOURCES = [
   { name: '机器之心', channel: 'tech',    color: '#1a1a2e', id: 'DOvnNz1vEB' },
   { name: '量子位',   channel: 'tech',    color: '#0e7a5f', id: 'MZd7azPorO' },
   { name: '少数派·榜', channel: 'tech',   color: '#d4483a', id: 'Y2KeDGQdNP' },
-  { name: '掘金',     channel: 'tech',    color: '#0e7af0', id: 'rYqoXz8dOD' },
   { name: '开源中国', channel: 'tech',    color: '#2c8a4a', id: 'rYqoXZzdOD' }
 ];
 
 const PER_SOURCE = 18;   // 每个平台取前 N 篇
 const CONCURRENCY = 6;   // 正文抓取并发数
-const MIN_BODY = 60;     // 正文少于此字数视为抓取失败
+const MIN_BODY = 130;    // 正文少于此字数视为"只有标题"，直接丢弃
 const BODY_MAX = 2800;   // 正文截断长度（控制 JSON 体积）
+const MAX_AGE_DAYS = 10; // 超过 N 天的旧闻不进流
+
+/* 标题清洗：去掉站点后缀 / 频道前缀 */
+function cleanTitle(t) {
+  let s = (t || '').replace(/\s+/g, ' ').trim();
+  // 人民网等：标题--社会·法治--人民网
+  s = s.replace(/\s*(--|——|_|\|)\s*[^\-—|_]{0,10}?(社会|法治|时政|要闻|财经|文化|娱乐|体育|观点|国际|地方|滚动|教育|健康)[·・\w]*\s*(--|——|_|\|).*$/, '');
+  // 站点名后缀：标题_央视网 / 标题 - 新京报
+  s = s.replace(/\s*[-_|—–]\s*(人民网|新华网|央视网|中国新闻网|中新网|新京报|界面新闻|南方都市报|红星新闻|澎湃新闻|中国新闻周刊).*$/i, '');
+  s = s.replace(/^【.*?】\s*/, '');
+  return s.trim();
+}
+
+/* 正文清洗：去责任编辑行、去重复段落、去短噪音段 */
+function cleanBody(raw) {
+  const seen = new Set();
+  const out = [];
+  for (const line of raw.split(/\n+/)) {
+    let s = line.replace(/\s+/g, ' ').trim();
+    if (!s) continue;
+    if (/^(责任编辑|责编|编辑|来源|原标题|本文来源|扫码|下载|返回顶部|分享到|相关阅读|上一篇|下一篇)[:：]?/.test(s)) continue;
+    if (/版权所有|未经授权|违法和不良信息|互联网新闻信息服务许可证/.test(s)) continue;
+    if (s.length < 12) continue;
+    if (seen.has(s)) continue;
+    seen.add(s); out.push(s);
+  }
+  return out.join('\n');
+}
 
 function sign() {
   return CryptoJS.AES.encrypt(Date.now().toString(), SECRET).toString();
@@ -79,6 +124,13 @@ async function fetchHtml(url, timeout = 15000) {
 }
 
 /* 依据域名选正文容器，再退回通用 <p> 拼接 */
+function blockText($, $el) {
+  const ps = $el.find('p, h2, h3, blockquote, li')
+    .map((i, e) => $(e).text().replace(/\s+/g, ' ').trim())
+    .get().filter(s => s.length > 15);
+  if (ps.length >= 2) return ps.join('\n');
+  return $el.text().replace(/\s+/g, ' ').trim();
+}
 function extractBody($, url) {
   let el = null;
   try {
@@ -92,13 +144,18 @@ function extractBody($, url) {
     else if (/wallstreetcn\.com/.test(url)) el = $('.article__content__, article, .content');
     else if (/thepaper\.cn/.test(url)) el = $('.index_centent_wrap, #article-content, .news_txt, .newsdetail-content');
     else if (/chinanews\.com\.cn/.test(url)) el = $('.left_zw, #cont_1_1_2, .content');
-    else if (/ifanr\.com/.test(url)) el = '.article-content, .entry-content, article';
+    else if (/people\.com\.cn/.test(url)) el = $('.rm_txt_con, #rwb_zw, .content');
+    else if (/bjnews\.com\.cn/.test(url)) el = $('.article, article, .content');
+    else if (/cdsb\.com/.test(url)) el = $('article, .article, .content');
+    else if (/oeeee\.com/.test(url)) el = $('.content, article, .article');
+    else if (/jiemian\.com/.test(url)) el = $('.article-content, .content, article');
+    else if (/ifanr\.com/.test(url)) el = $('.article-content, .entry-content, article');
+    else if (/infzm\.com/.test(url)) el = $('.article-content, article, .content');
     else if (/toutiao\.com/.test(url)) el = $('.article-content, article');
     else if (/qq\.com/.test(url)) el = $('.content-article, #ArticleContent, article');
     else if (/github\.com/.test(url)) el = $('article, .markdown-body');
-    if (typeof el === 'string') el = $(el);
     if (el && el.length) {
-      const txt = el.first().text().replace(/\s+/g, ' ').trim();
+      const txt = blockText($, el.first());
       if (txt.length >= MIN_BODY) return txt.slice(0, BODY_MAX);
     }
   } catch {}
@@ -107,20 +164,38 @@ function extractBody($, url) {
 }
 
 /* 从文章页提取元信息：标题 / 封面 / 发布时间 */
-function extractMeta($, html, url) {
-  const title = $('meta[property="og:title"]').attr('content')
+const BAD_IMG = /(logo|icon|avatar|qrcode|share|copyright|arrow|mask|blank|placeholder|head\.jpg|fileftp\/20(1\d|2[0-5])\/)/i;
+function extractMeta($, html, url, opts = {}) {
+  let title = cleanTitle($('meta[property="og:title"]').attr('content')
     || $('meta[property="twitter:title"]').attr('content')
-    || $('h1').first().text().replace(/\s+/g, ' ').trim() || '';
+    || $('h1').first().text());
+  // og:title 缺失（人民网等）时用 <title>
+  if (!title || title.length < 6) title = cleanTitle($('title').text());
   let img = $('meta[property="og:image"]').attr('content') || $('meta[itemprop="image"]').attr('content') || '';
-  // 无 og:image 时取正文首图（中新网等）
+  if (img && BAD_IMG.test(img)) img = '';
+  // 无 og:image 时取正文/文章页首图（中新网、周刊、第一财经、量子位等）
   if (!img) {
-    img = $('.left_zw img, #cont_1_1_2 img, .post_body img, .article-content img, article img').first().attr('src')
-      || $('.left_zw img, #cont_1_1_2 img, .post_body img').first().attr('data-src') || '';
+    const scopes = [$('article img, .article img, .article-content img, .detail img'),
+      $('.left_zw img, #cont_1_1_2 img, .post_body img, .rm_txt_con img'),
+      $('.content img'), $('img')];
+    for (const scope of scopes) {
+      if (img || !scope.length) continue;
+      scope.each((i, e) => {
+        if (img) return;
+        const s = $(e).attr('src') || $(e).attr('data-src') || $(e).attr('data-original') || '';
+        if (!s || !/\.(jpe?g|png|webp)/i.test(s)) return;
+        if (BAD_IMG.test(s)) return;
+        const w = parseInt($(e).attr('width') || '0', 10);
+        if (w && w < 200) return;
+        img = s;
+      });
+    }
   }
   if (img && img.startsWith('//')) img = 'https:' + img;
   else if (img && img.startsWith('/')) { try { img = new URL(url).origin + img; } catch {} }
-  // 过滤占位图/图标
-  if (img && /(logo|icon|avatar|blank|placeholder)/i.test(img)) img = '';
+  // https 页面里的 http 图片会被浏览器按混合内容拦截（人民网图床不支持 https），直接不用
+  if (/^http:\/\//i.test(img)) img = '';
+  if (img && BAD_IMG.test(img)) img = '';
   let time = $('meta[property="article:published_time"]').attr('content')
     || $('meta[itemprop="datePublished"]').attr('content')
     || $('meta[name="publishdate"], meta[name="pubdate"], meta[name="date"]').attr('content') || '';
@@ -144,6 +219,14 @@ async function mapLimit(items, limit, fn) {
   return out;
 }
 
+/* 旧闻过滤：超过 MAX_AGE_DAYS 的丢弃；时间解析不出时保留 */
+function tooOld(time) {
+  if (!time) return false;
+  const d = new Date(String(time).replace(' ', 'T'));
+  if (isNaN(d.getTime())) return false;
+  return Date.now() - d.getTime() > MAX_AGE_DAYS * 86400000;
+}
+
 async function main() {
   const jobs = [];
 
@@ -164,9 +247,9 @@ async function main() {
       }
       links = [...found].slice(0, PER_SOURCE);
       console.log(`  ${s.name}: ${links.length} 篇文章链接（${listUrl}）`);
-      if (links.length) break;
+      if (links.length >= 6) break;
     }
-    links.forEach(l => jobs.push({ name: s.name, channel: s.channel, color: s.color, link: l }));
+    links.forEach(l => jobs.push({ name: s.name, channel: s.channel, color: s.color, link: l, titleFrom: s.titleFrom }));
   }
 
   /* ② iTab 榜单补充 JS 渲染站点的文章链接 */
@@ -192,23 +275,26 @@ async function main() {
   const list = [...seen.values()];
   console.log(`[fetch-articles] 待抓正文 ${list.length} 篇（并发 ${CONCURRENCY}）`);
 
-  /* ③ 逐篇抓取文章页：标题 / 封面 / 时间 / 正文 */
+  /* ③ 逐篇抓取文章页：标题 / 封面 / 时间 / 正文；抓不到正文或太旧的直接丢弃 */
   const results = await mapLimit(list, CONCURRENCY, async (job) => {
     const html = await fetchHtml(job.link);
     if (!html) return null;
     const $ = cheerio.load(html);
     $('script,style,nav,footer,header,aside,noscript,iframe,form').remove();
-    const meta = extractMeta($, html, job.link);
-    const body = extractBody($, job.link);
-    if (body.length < MIN_BODY) return null;
-    return { ...job, title: meta.title || job.titleHint || '', img: meta.img, time: meta.time, body };
+    const meta = extractMeta($, html, job.link, { titleFrom: job.titleFrom });
+    const body = cleanBody(extractBody($, job.link));
+    if (body.length < MIN_BODY) return null;          // 只有标题 / 正文是导航渣 → 丢弃
+    if (tooOld(meta.time)) return null;                // 旧闻 → 丢弃
+    const title = (meta.title || job.titleHint || '').trim();
+    if (title.length < 6) return null;
+    return { ...job, title, img: meta.img, time: meta.time, body };
   });
 
   /* ④ 生成 JSON：按 link 索引；标题也建索引，供热榜标题反查 */
   const map = {};
   const byTitle = {};
   let okCount = 0;
-  const chans = { hot: 0, ent: 0, finance: 0, tech: 0 };
+  const chans = { life: 0, hot: 0, ent: 0, finance: 0, tech: 0 };
   for (const r of results) {
     if (!r || !r.title) continue;
     okCount++;

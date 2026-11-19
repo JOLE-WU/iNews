@@ -407,3 +407,9 @@ body[data-theme="dark"] .mi-toggle::after { transform: translateX(18px); }
   body { background: radial-gradient(circle at 50% 25%, #3b3b4c 0%, #17171d 65%); display: flex; align-items: center; justify-content: center; }
   .app { width: 420px; height: min(884px, 95vh); border-radius: 48px; box-shadow: 0 45px 110px rgba(0,0,0,.6), 0 0 0 11px #1b1b1f, 0 0 0 12px #35353c; }
 }
+
+/* ============ 频道空态 ============ */
+.feed-empty { padding: 72px 24px; text-align: center; color: var(--text-2); }
+.feed-empty .fe-emoji { font-size: 40px; line-height: 1; margin-bottom: 14px; opacity: .9; }
+.feed-empty .fe-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.feed-empty .fe-sub { font-size: 12.5px; line-height: 1.6; color: var(--text-3, var(--text-2)); }
