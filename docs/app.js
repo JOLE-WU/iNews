@@ -776,7 +776,7 @@ function renderFeed() {
             <span>${it.s}</span><span class="sep"></span><span>${it.time}</span>
           </div>
         </div>
-        ${it.img ? `<div class="fc-img" style="background:${it.g}">
+        ${it.img ? `<div class="fc-img">
           <img src="${it.img}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.style.display='none'" />
           <span class="fc-emoji">${it.e}</span>
         </div>` : ''}
